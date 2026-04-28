@@ -1,0 +1,62 @@
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.heading {
+  font-size: var(--fs-h3);
+  font-weight: var(--fw-semibold);
+  margin: 0;
+}
+
+.lead {
+  margin: var(--space-2) 0 0;
+  font-size: var(--fs-body-sm);
+  color: var(--text-muted);
+  line-height: var(--lh-relaxed);
+  max-width: 60ch;
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-4);
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-5);
+  background: var(--color-white);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-md);
+}
+
+.cardTitle {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: var(--fw-semibold);
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.cardBody {
+  margin: 0;
+  font-size: var(--fs-body-sm);
+  color: var(--text-muted);
+}
+
+.progress {
+  margin: 0;
+  font-size: var(--fs-caption);
+  color: var(--color-alpine-600);
+  font-weight: var(--fw-medium);
+}
+
+@media (min-width: 768px) {
+  .cards {
+    grid-template-columns: 1fr 1fr;
+  }
+}

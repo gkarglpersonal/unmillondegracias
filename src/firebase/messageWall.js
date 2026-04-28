@@ -99,6 +99,36 @@ export async function fetchAllMessages() {
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
 
+/** Admin: todos los mensajes (incluidos ocultos), para moderación. */
+export function subscribeAllMessages(callback) {
+  const q = query(collection(db, COL), orderBy('createdAt', 'desc'));
+  return onSnapshot(
+    q,
+    (snap) => callback(snap.docs.map((d) => ({ id: d.id, ...d.data() }))),
+    onListenerError
+  );
+}
+
+/** Admin: fotos pendientes de aprobación (subidas pero no aprobadas). */
+export function subscribePendingPhotos(callback) {
+  const q = query(
+    collection(db, COL),
+    where('photoApproved', '==', false),
+    orderBy('createdAt', 'desc')
+  );
+  return onSnapshot(
+    q,
+    (snap) => {
+      callback(
+        snap.docs
+          .map((d) => ({ id: d.id, ...d.data() }))
+          .filter((m) => m.photoUrl)
+      );
+    },
+    onListenerError
+  );
+}
+
 // Acciones admin
 export const setMessageHidden = (id, hidden) =>
   updateDoc(doc(db, COL, id), { messageHidden: hidden });

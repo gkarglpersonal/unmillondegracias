@@ -10,7 +10,7 @@
  * Volver a correrlo sobreescribe las partidas pero NO borra contribuciones existentes.
  */
 import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { dirname, resolve } from 'node:path';
 import { initializeApp, cert } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
@@ -21,10 +21,12 @@ dotenv.config();
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const projectRoot = resolve(__dirname, '..');
 
-// El seed no es ESM en src/, así que importamos como JSON via dynamic import.
-const { seedTripItems, seedConfig } = await import(
+// Para que `import()` dinámico funcione en Windows, hay que pasar una URL
+// `file://`, no una ruta absoluta `C:\...`. `pathToFileURL` la convierte.
+const seedModuleUrl = pathToFileURL(
   resolve(projectRoot, 'src/content/seedTripItems.js')
-);
+).href;
+const { seedTripItems, seedConfig } = await import(seedModuleUrl);
 
 const credentialsPath =
   process.env.GOOGLE_APPLICATION_CREDENTIALS || resolve(projectRoot, 'service-account.json');
