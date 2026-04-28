@@ -10,11 +10,12 @@ import styles from './TripItemCard.module.css';
 /**
  * Tarjeta de partida en formato acordeón.
  *
- * Vista colapsada (por defecto):
- *   icono Lucide + título + chevron · importe · barra · botón "Regalar"
- *
- * Vista expandida (al pulsar el título o el chevron):
- *   se despliega la descripción debajo del título con animación suave.
+ * Estructura en 3 bloques (flex column con justify-content: space-between):
+ *   1. titleBlock: icono + título (max 2 líneas) + chevron, y descripción
+ *      colapsable que se despliega bajo el título.
+ *   2. progressRow: importe + barra. Altura consistente entre tarjetas
+ *      del mismo grupo para alineación visual.
+ *   3. cta: botón "Regalar" pill compacto centrado.
  */
 export default function TripItemCard({ item }) {
   const { openForm } = useFormModal();
@@ -22,29 +23,31 @@ export default function TripItemCard({ item }) {
 
   return (
     <article className={styles.card}>
-      <button
-        type="button"
-        className={styles.head}
-        onClick={() => setExpanded((v) => !v)}
-        aria-expanded={expanded}
-        aria-controls={`desc-${item.id}`}
-      >
-        <CategoryIcon category={item.category} className={styles.categoryIcon} />
-        <h3 className={styles.title}>{item.name}</h3>
-        <ChevronDown
-          size={18}
-          strokeWidth={2}
-          className={`${styles.chevron} ${expanded ? styles.chevronOpen : ''}`}
-          aria-hidden="true"
-        />
-      </button>
+      <div className={styles.titleBlock}>
+        <button
+          type="button"
+          className={styles.head}
+          onClick={() => setExpanded((v) => !v)}
+          aria-expanded={expanded}
+          aria-controls={`desc-${item.id}`}
+        >
+          <CategoryIcon category={item.category} className={styles.categoryIcon} />
+          <h3 className={styles.title}>{item.name}</h3>
+          <ChevronDown
+            size={18}
+            strokeWidth={2}
+            className={`${styles.chevron} ${expanded ? styles.chevronOpen : ''}`}
+            aria-hidden="true"
+          />
+        </button>
 
-      <div
-        id={`desc-${item.id}`}
-        className={`${styles.descriptionWrap} ${expanded ? styles.expanded : ''}`}
-      >
-        <div className={styles.descriptionInner}>
-          <p className={styles.description}>{item.description}</p>
+        <div
+          id={`desc-${item.id}`}
+          className={`${styles.descriptionWrap} ${expanded ? styles.expanded : ''}`}
+        >
+          <div className={styles.descriptionInner}>
+            <p className={styles.description}>{item.description}</p>
+          </div>
         </div>
       </div>
 
@@ -58,7 +61,7 @@ export default function TripItemCard({ item }) {
         className={`btn ${styles.cta}`}
         onClick={() => openForm({ tripItemId: item.id })}
       >
-        <HeartIcon className={styles.heartIcon} size={18} />
+        <HeartIcon className={styles.heartIcon} size={16} />
         Regalar
       </button>
     </article>

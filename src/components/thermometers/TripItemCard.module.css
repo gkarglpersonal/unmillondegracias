@@ -1,8 +1,17 @@
+/* ================================================================
+ * TripItemCard — diseño compacto en acordeón
+ *
+ * Tarjeta con flex column y justify-content: space-between para
+ * alinear los tres bloques (title / progress / cta) entre tarjetas
+ * del mismo grupo. La descripción se despliega bajo el título con
+ * animación de max-height.
+ * ================================================================ */
+
 .card {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
-  padding: var(--space-5);
+  justify-content: space-between;
+  padding: 14px;
   background: var(--color-white);
   border: 1px solid var(--border-soft);
   border-radius: var(--radius-lg);
@@ -14,11 +23,16 @@
   box-shadow: var(--shadow-soft);
 }
 
-/* ----- Cabecera clicable: icono + título + chevron ----- */
+/* ----- 1. Bloque superior: head + descripción colapsable ----- */
+.titleBlock {
+  display: flex;
+  flex-direction: column;
+}
+
 .head {
   display: flex;
   align-items: flex-start;
-  gap: var(--space-3);
+  gap: 10px;
   width: 100%;
   padding: 0;
   background: transparent;
@@ -47,75 +61,81 @@
   letter-spacing: -0.015em;
   color: var(--text-primary);
   transition: color var(--transition-fast);
+
+  /* Máximo 2 líneas */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .chevron {
   flex-shrink: 0;
   margin-top: 4px;
-  color: var(--text-subtle);
-  transition: transform var(--transition-base), color var(--transition-fast);
+  color: var(--color-alpine-500);
+  transition: transform 0.2s ease;
 }
 
 .chevronOpen {
   transform: rotate(180deg);
-  color: var(--color-alpine-500);
 }
 
-/* ----- Descripción colapsable con animación suave ----- */
+/* ----- Descripción colapsable con transición de max-height ----- */
 .descriptionWrap {
-  display: grid;
-  grid-template-rows: 0fr;
-  transition: grid-template-rows 320ms var(--ease-out), margin 320ms var(--ease-out);
-  margin-top: 0;
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.25s ease;
 }
 
 .descriptionWrap.expanded {
-  grid-template-rows: 1fr;
-  margin-top: calc(-1 * var(--space-2));
+  /* Cota alta para cualquier descripción del seed; sirve como upper bound. */
+  max-height: 320px;
 }
 
 .descriptionInner {
-  overflow: hidden;
-  /* Sangra el icono+chevron para alinear con el título */
-  padding-left: calc(22px + var(--space-3));
-  padding-right: calc(18px + var(--space-3));
+  /* Sangrado para que la descripción se alinee bajo el título */
+  padding-left: calc(22px + 10px);
+  padding-right: calc(18px + 10px);
 }
 
 .description {
-  margin: 0;
-  padding-block: var(--space-2) var(--space-1);
+  margin: 6px 0 0;
   font-size: var(--fs-body-sm);
   line-height: var(--lh-relaxed);
   color: var(--text-muted);
 }
 
-/* ----- Importe + barra de progreso ----- */
+/* ----- 2. Bloque medio: importe + barra ----- */
 .progressRow {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: 10px;
+  margin-top: 6px;
+  /* Altura mínima fija para alinear progressRow entre tarjetas del mismo grupo */
+  min-height: 28px;
 }
 
 .amount {
   font-family: var(--font-display);
-  font-size: 1.125rem;
+  font-size: 1.0625rem;
   font-weight: var(--fw-semibold);
   color: var(--text-primary);
   letter-spacing: -0.005em;
   font-variant-numeric: tabular-nums;
   flex-shrink: 0;
-  min-width: 58px;
+  min-width: 56px;
 }
 
-/* Permitimos que la ThermometerBar use todo el espacio restante */
 .progressRow > :nth-child(2) { flex: 1; min-width: 0; }
 
-/* ----- CTA "Regalar" ----- */
-.cta {
-  margin-top: auto;
-  padding: var(--space-3) var(--space-5);
+/* ----- 3. CTA pill compacto centrado -----
+ * Anidado bajo .card para superar la especificidad de la global .btn. */
+.card .cta {
+  align-self: center;
+  margin-top: 8px;
+  padding: 8px 20px;
   font-size: var(--fs-body-sm);
-  width: 100%;
+  width: auto;
 }
 
 .heartIcon {
@@ -123,8 +143,10 @@
   flex-shrink: 0;
 }
 
-/* Reducir motion: animación instantánea */
 @media (prefers-reduced-motion: reduce) {
-  .descriptionWrap { transition: none; }
-  .chevron { transition: none; }
+  .descriptionWrap,
+  .chevron,
+  .card {
+    transition: none;
+  }
 }
