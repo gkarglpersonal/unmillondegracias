@@ -91,6 +91,32 @@
   }
 }
 
+/* ----- Tarjeta de vuelo solitaria (separador entre ciudades) -----
+ * Usa un grid invisible con las MISMAS columnas que el grid de la ciudad,
+ * y coloca la tarjeta en la columna 1 para alinearla con la primera
+ * tarjeta de las ciudades vecinas. Mantiene gap idéntico. */
+.flightSolo {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-5);
+}
+
+.flightSolo > article {
+  grid-column: 1 / 2;
+}
+
+@media (min-width: 768px) {
+  .flightSolo {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .flightSolo {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
 /* ================================================================
  * Sección de cierre "Para completar el viaje"
  * Fuera del timeline, sin línea vertical, grid centrado

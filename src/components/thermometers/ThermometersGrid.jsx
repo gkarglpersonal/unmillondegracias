@@ -2,16 +2,18 @@ import { useMemo } from 'react';
 import { useTripItems } from '../../hooks/useTripItems.js';
 import { useConfig } from '../../hooks/useConfig.js';
 import { percent } from '../../utils/formatCurrency.js';
-import { cities, closingItemIds } from '../../content/tripCities.js';
+import { timelineSequence, closingItemIds } from '../../content/tripCities.js';
 import TripItemCard from './TripItemCard.jsx';
 import CityNode from './CityNode.jsx';
 import styles from './ThermometersGrid.module.css';
 
 /**
- * Sección de experiencias del viaje. Línea de tiempo cronológica con un
- * nodo por ciudad. Las tarjetas de vuelo van como primera tarjeta del
- * grid de su ciudad de destino, con un fondo verde sutil que las distingue.
- * Cierra con tres tarjetas "Para completar el viaje" fuera del timeline.
+ * Sección de experiencias del viaje. Línea de tiempo cronológica:
+ *  - Cada ciudad tiene su nodo (círculo + nombre + grid de tarjetas).
+ *  - Los vuelos son tarjetas SOLAS, fuera del grid de cualquier ciudad,
+ *    actuando como separador narrativo entre paradas. Ocupan el ancho
+ *    de una columna del grid (alineadas a la izquierda).
+ *  - Cierra con tres tarjetas "Para completar el viaje" sin línea de tiempo.
  */
 export default function ThermometersGrid() {
   const { items, loading } = useTripItems();
@@ -56,17 +58,28 @@ export default function ThermometersGrid() {
       ) : (
         <>
           <div className={styles.timeline}>
-            {cities.map((city) => {
-              const cityCards = city.itemIds
+            {timelineSequence.map((entry, idx) => {
+              if (entry.type === 'flight') {
+                const item = itemsById[entry.itemId];
+                if (!item) return null;
+                return (
+                  <div
+                    key={`flight-${entry.itemId}`}
+                    className={styles.flightSolo}
+                  >
+                    <TripItemCard item={item} />
+                  </div>
+                );
+              }
+              const cityCards = entry.itemIds
                 .map((id) => itemsById[id])
                 .filter(Boolean);
               return (
                 <CityNode
-                  key={city.id}
-                  name={city.name}
-                  nights={city.nights}
-                  days={city.days}
-                  showMeta={city.showMeta !== false}
+                  key={entry.id}
+                  name={entry.name}
+                  nights={entry.nights}
+                  days={entry.days}
                 >
                   {cityCards.map((it) => (
                     <TripItemCard key={it.id} item={it} />
