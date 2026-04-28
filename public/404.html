@@ -11,21 +11,33 @@
       //
       // Captura la ruta solicitada y redirige a la raíz de la app con la
       // ruta como query, para que el script complementario en index.html
-      // restaure la URL real con history.replaceState. Resuelve el 404
-      // que GitHub Pages devolvería en rutas SPA como /admin.
+      // restaure la URL real con history.replaceState.
       //
-      // pathSegmentsToKeep = 1 porque la app vive bajo /unmillondegracias/.
-      // Cuando se publique en el custom domain (raíz), cambiar a 0.
-      var pathSegmentsToKeep = 1;
+      // pathSegmentsToKeep = 0 porque la app sirve desde la raíz del
+      // dominio personalizado (unmillondegracias.com). Si en el futuro
+      // se vuelve a publicar bajo /unmillondegracias/ (gkarglpersonal.github.io),
+      // cambiar a 1.
+      (function () {
+        var l = window.location;
 
-      var l = window.location;
-      l.replace(
-        l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
-        l.pathname.split('/').slice(0, 1 + pathSegmentsToKeep).join('/') + '/?/' +
-        l.pathname.slice(1).split('/').slice(pathSegmentsToKeep).join('/').replace(/&/g, '~and~') +
-        (l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '') +
-        l.hash
-      );
+        // Safety: si la URL ya contiene "~and~" (síntoma de loop por una
+        // redirección previa mal configurada), ir a la raíz limpia.
+        if (/~and~/.test(l.pathname)) {
+          l.replace(
+            l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') + '/'
+          );
+          return;
+        }
+
+        var pathSegmentsToKeep = 0;
+        l.replace(
+          l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
+            l.pathname.split('/').slice(0, 1 + pathSegmentsToKeep).join('/') + '/?/' +
+            l.pathname.slice(1).split('/').slice(pathSegmentsToKeep).join('/').replace(/&/g, '~and~') +
+            (l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '') +
+            l.hash
+        );
+      })();
     </script>
   </head>
   <body></body>
