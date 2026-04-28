@@ -14,29 +14,103 @@
   box-shadow: var(--shadow-soft);
 }
 
-.header {
+/* ----- Cabecera clicable: icono + título + chevron ----- */
+.head {
   display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
+  align-items: flex-start;
+  gap: var(--space-3);
+  width: 100%;
+  padding: 0;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  color: inherit;
+}
+
+.head:hover .title { color: var(--color-alpine-600); }
+
+.categoryIcon {
+  color: var(--color-alpine-500);
+  flex-shrink: 0;
+  margin-top: 2px;
 }
 
 .title {
+  flex: 1;
+  margin: 0;
   font-family: var(--font-display);
-  font-size: 1.375rem;
+  font-size: 1.0625rem;
   font-weight: var(--fw-semibold);
-  line-height: 1.15;
+  line-height: 1.25;
   letter-spacing: -0.015em;
   color: var(--text-primary);
-  margin: 0;
+  transition: color var(--transition-fast);
+}
+
+.chevron {
+  flex-shrink: 0;
+  margin-top: 4px;
+  color: var(--text-subtle);
+  transition: transform var(--transition-base), color var(--transition-fast);
+}
+
+.chevronOpen {
+  transform: rotate(180deg);
+  color: var(--color-alpine-500);
+}
+
+/* ----- Descripción colapsable con animación suave ----- */
+.descriptionWrap {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 320ms var(--ease-out), margin 320ms var(--ease-out);
+  margin-top: 0;
+}
+
+.descriptionWrap.expanded {
+  grid-template-rows: 1fr;
+  margin-top: calc(-1 * var(--space-2));
+}
+
+.descriptionInner {
+  overflow: hidden;
+  /* Sangra el icono+chevron para alinear con el título */
+  padding-left: calc(22px + var(--space-3));
+  padding-right: calc(18px + var(--space-3));
 }
 
 .description {
+  margin: 0;
+  padding-block: var(--space-2) var(--space-1);
   font-size: var(--fs-body-sm);
   line-height: var(--lh-relaxed);
   color: var(--text-muted);
-  margin: 0;
 }
 
+/* ----- Importe + barra de progreso ----- */
+.progressRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.amount {
+  font-family: var(--font-display);
+  font-size: 1.125rem;
+  font-weight: var(--fw-semibold);
+  color: var(--text-primary);
+  letter-spacing: -0.005em;
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+  min-width: 58px;
+}
+
+/* Permitimos que la ThermometerBar use todo el espacio restante */
+.progressRow > :nth-child(2) { flex: 1; min-width: 0; }
+
+/* ----- CTA "Regalar" ----- */
 .cta {
   margin-top: auto;
   padding: var(--space-3) var(--space-5);
@@ -47,4 +121,10 @@
 .heartIcon {
   color: var(--color-honey-300);
   flex-shrink: 0;
+}
+
+/* Reducir motion: animación instantánea */
+@media (prefers-reduced-motion: reduce) {
+  .descriptionWrap { transition: none; }
+  .chevron { transition: none; }
 }

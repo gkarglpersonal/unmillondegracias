@@ -1,29 +1,57 @@
+import { useState } from 'react';
+import { ChevronDown } from 'lucide-react';
 import { useFormModal } from '../form/FormProvider.jsx';
-import ThermometerBar from './ThermometerBar.jsx';
+import CategoryIcon from '../ui/CategoryIcon.jsx';
 import HeartIcon from '../ui/HeartIcon.jsx';
+import ThermometerBar from './ThermometerBar.jsx';
+import { formatCurrency } from '../../utils/formatCurrency.js';
 import styles from './TripItemCard.module.css';
 
 /**
- * Tarjeta individual de una partida del viaje.
- * Muestra: nombre, descripción, barra de progreso (solo %), y CTA.
+ * Tarjeta de partida en formato acordeón.
  *
- * No mostramos nombres de contribuyentes por partida: la prueba social la
- * gestionan el contador global del hero y el feed de incorporaciones recientes.
+ * Vista colapsada (por defecto):
+ *   icono Lucide + título + chevron · importe · barra · botón "Regalar"
  *
- * Click en CTA → openForm({ tripItemId }) — abre el modal mobile o
- * actualiza el sidebar desktop con la partida preseleccionada.
+ * Vista expandida (al pulsar el título o el chevron):
+ *   se despliega la descripción debajo del título con animación suave.
  */
 export default function TripItemCard({ item }) {
   const { openForm } = useFormModal();
+  const [expanded, setExpanded] = useState(false);
 
   return (
     <article className={styles.card}>
-      <header className={styles.header}>
+      <button
+        type="button"
+        className={styles.head}
+        onClick={() => setExpanded((v) => !v)}
+        aria-expanded={expanded}
+        aria-controls={`desc-${item.id}`}
+      >
+        <CategoryIcon category={item.category} className={styles.categoryIcon} />
         <h3 className={styles.title}>{item.name}</h3>
-        <p className={styles.description}>{item.description}</p>
-      </header>
+        <ChevronDown
+          size={18}
+          strokeWidth={2}
+          className={`${styles.chevron} ${expanded ? styles.chevronOpen : ''}`}
+          aria-hidden="true"
+        />
+      </button>
 
-      <ThermometerBar raised={item.raisedAmount || 0} target={item.targetAmount} />
+      <div
+        id={`desc-${item.id}`}
+        className={`${styles.descriptionWrap} ${expanded ? styles.expanded : ''}`}
+      >
+        <div className={styles.descriptionInner}>
+          <p className={styles.description}>{item.description}</p>
+        </div>
+      </div>
+
+      <div className={styles.progressRow}>
+        <span className={styles.amount}>{formatCurrency(item.targetAmount)}</span>
+        <ThermometerBar raised={item.raisedAmount || 0} target={item.targetAmount} />
+      </div>
 
       <button
         type="button"
@@ -31,7 +59,7 @@ export default function TripItemCard({ item }) {
         onClick={() => openForm({ tripItemId: item.id })}
       >
         <HeartIcon className={styles.heartIcon} size={18} />
-        Sumarme a esta experiencia
+        Regalar
       </button>
     </article>
   );

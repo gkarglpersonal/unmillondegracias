@@ -1,196 +1,251 @@
 /**
- * Partidas placeholder del viaje a Argentina (25 ítems).
+ * Lista definitiva de las 29 partidas del viaje a Argentina.
+ * Suma de partidas: 9.720 €.
+ * Coste total del viaje: 10.500 € (los 780 € restantes son margen para
+ * imprevistos no asignados a una partida concreta).
  *
- * Suma aproximada: ~14.500 € (ajustar a 15.000 € con PANGEA The Travel Store).
- * Tono: cálido, evocador, en español. Cada descripción invita a patrocinar
- * esa experiencia concreta, no es genérica.
- *
- * Cuando llegue la propuesta real de PANGEA The Travel Store, editar/eliminar
- * desde /admin.
+ * Categorías (usadas para mostrar icono Lucide en la tarjeta):
+ *   flight | hotel | transport | excursion | wine | entertainment |
+ *   food | gift | insurance
  */
 export const seedTripItems = [
   {
-    name: 'El vuelo a Argentina',
+    name: 'El asiento de ida — Madrid a Buenos Aires',
     description:
-      'El primer suspiro al cruzar el Atlántico. El momento en que el viaje deja de ser una idea y se convierte en realidad.',
-    targetAmount: 2200,
+      'El momento en que el viaje deja de ser una idea. Iberia despega, y Argentina espera al otro lado del Atlántico.',
+    targetAmount: 550,
+    category: 'flight',
     order: 1,
   },
   {
-    name: 'El vuelo de regreso a casa',
+    name: 'El asiento de vuelta — Buenos Aires a Madrid',
     description:
       'La vuelta, con la maleta llena de recuerdos nuevos. El último regalo de un viaje que no quiere terminar.',
-    targetAmount: 2200,
+    targetAmount: 550,
+    category: 'flight',
     order: 2,
   },
   {
-    name: 'Cuatro noches en Buenos Aires',
+    name: 'Buenos Aires → Ushuaia',
     description:
-      'Un hotel boutique en Recoleta, con balcón y desayuno al sol. La luz dorada de Buenos Aires entrando por la ventana al despertar.',
-    targetAmount: 1200,
+      'Volar hacia el fin del mundo. Literalmente. En una hora, del calor porteño al frío austral.',
+    targetAmount: 280,
+    category: 'flight',
     order: 3,
   },
   {
-    name: 'Una noche de tango en San Telmo',
+    name: 'Ushuaia → El Calafate',
     description:
-      'El sonido del bandoneón, las miradas cómplices, el primer paso. Una cena con espectáculo en el barrio donde el tango nunca dejó de bailarse.',
+      'De un paisaje imposible a otro. La Patagonia desde el aire, infinita y salvaje.',
     targetAmount: 220,
+    category: 'flight',
     order: 4,
   },
   {
-    name: 'Brunch dominical en Palermo',
+    name: 'El Calafate → Iguazú',
     description:
-      'Un domingo lento. Café especial, medialunas tibias y el bullicio amable de Palermo Soho.',
-    targetAmount: 95,
+      'Cruzar Argentina de sur a norte, de hielo a selva, en un solo día.',
+    targetAmount: 280,
+    category: 'flight',
     order: 5,
   },
   {
-    name: 'Paseo por Caminito y La Boca',
+    name: 'Iguazú → Mendoza',
     description:
-      'Las paredes de colores de La Boca, el barrio que pintó toda una ciudad. Un paseo guiado que se vive con los ojos.',
-    targetAmount: 130,
+      'El último tramo interno. De la selva subtropical a los viñedos andinos. Argentina en toda su diversidad.',
+    targetAmount: 320,
+    category: 'flight',
     order: 6,
   },
   {
-    name: 'Tres noches en Mendoza, entre viñedos',
+    name: 'Mendoza → Madrid',
     description:
-      'Habitación con vistas a la cordillera, despertar oliendo a uva fermentada. El silencio de los viñedos al atardecer.',
-    targetAmount: 1050,
+      'El vuelo de vuelta desde Mendoza. Con una copa de Malbec en la memoria y el corazón lleno.',
+    targetAmount: 650,
+    category: 'flight',
     order: 7,
   },
   {
-    name: 'Visita a una bodega con degustación',
+    name: 'Tres noches en Buenos Aires',
     description:
-      'Un Malbec añejo, una tabla de quesos andinos y la historia de la familia que cuida estas vides desde hace generaciones.',
-    targetAmount: 260,
+      'Hotel boutique en Recoleta. Balcón, desayuno al sol y la luz dorada de Buenos Aires entrando por la ventana.',
+    targetAmount: 650,
+    category: 'hotel',
     order: 8,
-  },
-  {
-    name: 'Cena bajo las estrellas en los viñedos',
-    description:
-      'La mesa puesta entre las hileras de vides. Las copas brillando con la última luz del día. La definición misma de inolvidable.',
-    targetAmount: 380,
-    order: 9,
-  },
-  {
-    name: 'Un día de spa frente a los Andes',
-    description:
-      'Aguas termales al pie de la cordillera, masaje a cuatro manos y silencio. El cuerpo descansa, la mente también.',
-    targetAmount: 320,
-    order: 10,
-  },
-  {
-    name: 'Asado tradicional en una estancia',
-    description:
-      'El humo, la carne en la parrilla, la sobremesa larga. La Argentina más auténtica, en una mesa donde los desconocidos terminan siendo amigos.',
-    targetAmount: 320,
-    order: 11,
-  },
-  {
-    name: 'Tres noches en Bariloche',
-    description:
-      'Una cabaña de madera frente al lago Nahuel Huapi. Chocolate caliente, chimenea encendida y bosques que parecen pintados.',
-    targetAmount: 1050,
-    order: 12,
-  },
-  {
-    name: 'Excursión al Cerro Catedral',
-    description:
-      'Subir despacio, mirar lejos. Bariloche desde arriba es un cuadro que cuesta creer real.',
-    targetAmount: 200,
-    order: 13,
-  },
-  {
-    name: 'La travesía por los Siete Lagos',
-    description:
-      'La carretera más bonita de la Patagonia. Cada curva, un lago distinto. Cada lago, un paisaje que no se repite.',
-    targetAmount: 480,
-    order: 14,
-  },
-  {
-    name: 'Dos noches en El Calafate',
-    description:
-      'El cielo más estrellado del viaje. La Patagonia en silencio absoluto, esperando el día siguiente.',
-    targetAmount: 720,
-    order: 15,
-  },
-  {
-    name: 'Excursión al Glaciar Perito Moreno',
-    description:
-      'Estar de pie frente a un muro de hielo de setenta metros. Escuchar cómo cruje. Sentirse pequeñísimo y feliz.',
-    targetAmount: 320,
-    order: 16,
-  },
-  {
-    name: 'Mini-trekking sobre el glaciar',
-    description:
-      'Caminar sobre el hielo con crampones en los pies y un vaso de whisky con hielo milenario al final. La aventura inesperada del viaje.',
-    targetAmount: 580,
-    order: 17,
   },
   {
     name: 'Dos noches en Ushuaia',
     description:
-      'El fin del mundo. Una habitación con vistas al canal Beagle y al amanecer más austral del planeta.',
-    targetAmount: 760,
-    order: 18,
+      'Una habitación con vistas al Canal Beagle. El amanecer más austral del planeta.',
+    targetAmount: 550,
+    category: 'hotel',
+    order: 9,
   },
   {
-    name: 'Navegación por el canal Beagle',
+    name: 'Tres noches en El Calafate',
     description:
-      'Lobos marinos, pingüinos y el faro del fin del mundo. Una mañana que parece sacada de una película.',
-    targetAmount: 290,
-    order: 19,
+      'Despertar con el lago Argentino al fondo y los glaciares esperando al otro lado de la ventana.',
+    targetAmount: 620,
+    category: 'hotel',
+    order: 10,
   },
   {
     name: 'Dos noches en Iguazú',
     description:
       'Selva alrededor, monos en los árboles y el rugido distante del agua. Dormir, literalmente, en otro mundo.',
-    targetAmount: 680,
+    targetAmount: 480,
+    category: 'hotel',
+    order: 11,
+  },
+  {
+    name: 'Tres noches en Mendoza entre viñedos',
+    description:
+      'Una habitación con vistas a la cordillera. Despertar oliendo a tierra mojada y uva madura.',
+    targetAmount: 600,
+    category: 'hotel',
+    order: 12,
+  },
+  {
+    name: 'Traslados y transfers de todo el viaje',
+    description:
+      'Llegar siempre con alguien esperando. El lujo discreto de no preocuparse por nada logístico.',
+    targetAmount: 280,
+    category: 'transport',
+    order: 13,
+  },
+  {
+    name: 'City tour Buenos Aires + Tierra del Fuego',
+    description:
+      'Palermo, Recoleta, San Telmo, La Boca — y el cartel que dice Fin de la Ruta 3.',
+    targetAmount: 300,
+    category: 'excursion',
+    order: 14,
+  },
+  {
+    name: 'Glaciar Perito Moreno + Safari Náutico',
+    description:
+      'Pasarelas del glaciar más navegación en lancha hasta su base. Estar de pie frente a 70 metros de hielo vivo.',
+    targetAmount: 280,
+    category: 'excursion',
+    order: 15,
+  },
+  {
+    name: 'Cataratas del Iguazú — ambos lados',
+    description:
+      'La Garganta del Diablo desde Argentina y la vista panorámica desde Brasil. Una maravilla, dos perspectivas.',
+    targetAmount: 300,
+    category: 'excursion',
+    order: 16,
+  },
+  {
+    name: 'Navegación Todo Glaciares — Upsala y Spegazzini',
+    description:
+      'El día libre en El Calafate convertido en aventura. Glaciares que no aparecen en los mapas turísticos.',
+    targetAmount: 200,
+    category: 'excursion',
+    order: 17,
+  },
+  {
+    name: 'La Gran Aventura — lancha bajo las Cataratas',
+    description:
+      'Una embarcación que se mete bajo el agua que cae. Salir empapadas, salir riéndose como niñas.',
+    targetAmount: 160,
+    category: 'excursion',
+    order: 18,
+  },
+  {
+    name: 'Tren del Fin del Mundo — Ushuaia',
+    description:
+      'El tren más austral del planeta atravesando el bosque subantártico. Un capricho que vale cada minuto.',
+    targetAmount: 100,
+    category: 'excursion',
+    order: 19,
+  },
+  {
+    name: 'Día en estancia gaucha en las Pampas',
+    description:
+      'Empanadas, asado, cabalgata y sobremesa larga. La Argentina más auténtica, a una hora de Buenos Aires.',
+    targetAmount: 330,
+    category: 'excursion',
     order: 20,
   },
   {
-    name: 'Las Cataratas, lado argentino',
+    name: 'Visita a bodega con degustación en Mendoza',
     description:
-      'Las pasarelas, la Garganta del Diablo, el arcoíris constante. Una de las maravillas naturales del planeta, vista desde dentro.',
-    targetAmount: 240,
+      'Un Malbec de autor, tabla de quesos andinos y vistas a la cordillera. Zuccardi o Catena Zapata.',
+    targetAmount: 200,
+    category: 'wine',
     order: 21,
   },
   {
-    name: 'La Gran Aventura: lancha bajo las cataratas',
+    name: 'Día de montaña en los Andes desde Mendoza',
     description:
-      'Una embarcación que se mete bajo el agua que cae. Salir empapados, salir riéndose como niños.',
-    targetAmount: 290,
+      'Aconcagua a lo lejos, aire puro y silencio. La otra cara de Mendoza, la que no es viñedo.',
+    targetAmount: 150,
+    category: 'excursion',
     order: 22,
   },
   {
-    name: 'Cena en un gran restaurante porteño',
+    name: 'Noche de tango con cena en San Telmo',
     description:
-      'Una mesa en uno de los mejores restaurantes de Argentina. Vino bueno, conversación larga y un menú que se recordará durante años.',
-    targetAmount: 340,
+      'Cena y espectáculo en El Querandi o La Ventana. El bandoneón, las miradas cómplices, el primer paso.',
+    targetAmount: 220,
+    category: 'entertainment',
     order: 23,
   },
   {
-    name: 'Café con medialunas en La Biela',
+    name: 'Una cena especial en Buenos Aires',
     description:
-      'El rito porteño. Un café cortado, una medialuna recién horneada y la sensación de estar en casa lejos de casa.',
-    targetAmount: 40,
+      'Una mesa en Don Julio o Tegui. Vino bueno, conversación larga y un menú que se recordará durante años.',
+    targetAmount: 180,
+    category: 'food',
     order: 24,
   },
   {
-    name: 'Un recuerdo para traer a casa',
+    name: 'Almuerzo en viñedo bajo el sol de Mendoza',
     description:
-      'Un mate de plata labrado, un pañuelo de alpaca, algo pequeño que cabe en la maleta y dura toda una vida.',
-    targetAmount: 120,
+      'La mesa puesta entre hileras de vides. Las copas brillando con la última luz del día.',
+    targetAmount: 160,
+    category: 'food',
     order: 25,
+  },
+  {
+    name: 'Cafés, antojos y placeres del camino',
+    description:
+      'Medialunas porteñas, centolla en Ushuaia, fruta tropical en Iguazú, empanadas mendocinas.',
+    targetAmount: 250,
+    category: 'food',
+    order: 26,
+  },
+  {
+    name: 'Recuerdos para traer a casa',
+    description:
+      'Un mate de plata labrado, un pañuelo de alpaca patagónica. Algo pequeño que dura toda una vida.',
+    targetAmount: 150,
+    category: 'gift',
+    order: 27,
+  },
+  {
+    name: 'Imprevistos y momentos espontáneos',
+    description:
+      'El taxi nocturno, la excursión de última hora, el helado junto al lago. Para que nada se quede sin vivir.',
+    targetAmount: 400,
+    category: 'gift',
+    order: 28,
+  },
+  {
+    name: 'Seguro de viaje para todo el recorrido',
+    description:
+      'Para que viajar tranquila también sea parte del regalo. 16 días, dos personas, sin preocupaciones.',
+    targetAmount: 310,
+    category: 'insurance',
+    order: 29,
   },
 ];
 
 export const seedConfig = {
-  totalTripCost: 15000,
-  totalRaised: 0,
-  totalContributors: 0,
-  heroTitle: '40 años. Miles de niños. Una maestra que lo dio todo.',
+  totalTripCost: 10500,
+  heroTitle: '40 años. Miles de niños. Una maestra que lo ha dado todo.',
   heroSubtitle:
-    'Mariángeles dedicó más de cuatro décadas a su vocación con ánimo, ilusión y una entrega que marcó a generaciones. Es nuestro turno de devolverle un poquito de todo lo que nos dio.',
+    'Mariángeles dedicó más de cuatro décadas a su vocación con ánimo, ilusión y una entrega que marcó a generaciones. Es nuestro turno de devolverle aunque sea una pequeña parte de todo lo que nos ha dado.',
 };
