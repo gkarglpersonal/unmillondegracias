@@ -1,21 +1,21 @@
 import { useEffect, useState } from 'react';
-import { subscribeTripItems } from '../firebase/tripItems.js';
+import { subscribeApprovedPhotos } from '../firebase/messageWall.js';
 
-export function useTripItems({ onlyActive = true } = {}) {
+export function useApprovedPhotos() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsub = subscribeTripItems((data) => {
+    const unsub = subscribeApprovedPhotos((data) => {
       setItems(data);
       setLoading(false);
-    }, { onlyActive });
+    });
     const t = setTimeout(() => setLoading(false), 2000);
     return () => {
       clearTimeout(t);
       try { unsub(); } catch { /* noop */ }
     };
-  }, [onlyActive]);
+  }, []);
 
   return { items, loading };
 }

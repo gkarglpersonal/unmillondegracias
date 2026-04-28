@@ -1,0 +1,31 @@
+.wrap {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.track {
+  flex: 1;
+  height: 6px;
+  background: rgba(61, 82, 51, 0.10);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.fill {
+  height: 100%;
+  background: var(--gradient-cta);
+  border-radius: var(--radius-full);
+  transition: width 800ms var(--ease-out);
+}
+
+.pct {
+  font-family: var(--font-body);
+  font-size: var(--fs-caption);
+  font-weight: var(--fw-semibold);
+  color: var(--color-alpine-600);
+  letter-spacing: 0.04em;
+  min-width: 36px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}

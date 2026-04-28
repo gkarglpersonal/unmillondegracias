@@ -1,0 +1,33 @@
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin-bottom: var(--space-9);
+}
+
+.title {
+  font-size: var(--fs-h1);
+  font-weight: var(--fw-semibold);
+  letter-spacing: -0.025em;
+  line-height: var(--lh-tight);
+  margin: 0;
+  max-width: 18ch;
+}
+
+.empty {
+  font-size: var(--fs-body);
+  color: var(--text-muted);
+  font-style: italic;
+  max-width: 60ch;
+}
+
+.masonry {
+  display: flex;
+  margin-left: calc(-1 * var(--space-4));
+  width: auto;
+}
+
+.masonryColumn {
+  padding-left: var(--space-4);
+  background-clip: padding-box;
+}

@@ -4,6 +4,9 @@ import HeroSection from '../components/hero/HeroSection.jsx';
 import HistorySection from '../components/history/HistorySection.jsx';
 import TripTransition from '../components/trip/TripTransition.jsx';
 import TripIntro from '../components/trip/TripIntro.jsx';
+import ThermometersGrid from '../components/thermometers/ThermometersGrid.jsx';
+import MessagesWall from '../components/messages/MessagesWall.jsx';
+import PhotoGallery from '../components/gallery/PhotoGallery.jsx';
 import StickySidebar from '../components/form/StickySidebar.jsx';
 import { FormProvider } from '../components/form/FormProvider.jsx';
 
@@ -23,35 +26,13 @@ export default function Home() {
           <TripIntro />
         </div>
 
-        <section id="participar" className="section">
-          <p className="eyebrow">Lista de experiencias</p>
-          <h2 style={{ fontSize: 'var(--fs-h1)', maxWidth: '22ch', margin: 0 }}>
-            Las experiencias del viaje.
-          </h2>
-          <p style={{ marginTop: 'var(--space-5)', color: 'var(--text-muted)' }}>
-            (Lane D — termómetros por partida)
-          </p>
-        </section>
+        <ThermometersGrid />
 
-        <section className="section section-alt">
-          <p className="eyebrow">Mensajes</p>
-          <h2 style={{ fontSize: 'var(--fs-h1)', maxWidth: '22ch', margin: 0 }}>
-            Lo que tenemos para decirle.
-          </h2>
-          <p style={{ marginTop: 'var(--space-5)', color: 'var(--text-muted)' }}>
-            (Lane D — muro de mensajes)
-          </p>
-        </section>
+        <div className="section-alt">
+          <MessagesWall />
+        </div>
 
-        <section className="section">
-          <p className="eyebrow">Galería</p>
-          <h2 style={{ fontSize: 'var(--fs-h1)', maxWidth: '22ch', margin: 0 }}>
-            Recuerdos compartidos.
-          </h2>
-          <p style={{ marginTop: 'var(--space-5)', color: 'var(--text-muted)' }}>
-            (Lane D — galería de fotos)
-          </p>
-        </section>
+        <PhotoGallery />
 
         <footer
           className="section"
