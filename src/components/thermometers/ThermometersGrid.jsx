@@ -2,17 +2,16 @@ import { useMemo } from 'react';
 import { useTripItems } from '../../hooks/useTripItems.js';
 import { useConfig } from '../../hooks/useConfig.js';
 import { percent } from '../../utils/formatCurrency.js';
-import { timelineSequence, closingItemIds } from '../../content/tripCities.js';
+import { cities, closingItemIds } from '../../content/tripCities.js';
 import TripItemCard from './TripItemCard.jsx';
 import CityNode from './CityNode.jsx';
-import FlightBanner from './FlightBanner.jsx';
 import styles from './ThermometersGrid.module.css';
 
 /**
- * Sección de experiencias del viaje. Línea de tiempo cronológica:
- * vuelos como banners + ciudades con grid de tarjetas, conectados por
- * una línea vertical en verde eucalipto. Cierra con tres tarjetas
- * "Para completar el viaje" fuera de la línea de tiempo.
+ * Sección de experiencias del viaje. Línea de tiempo cronológica con un
+ * nodo por ciudad. Las tarjetas de vuelo van como primera tarjeta del
+ * grid de su ciudad de destino, con un fondo verde sutil que las distingue.
+ * Cierra con tres tarjetas "Para completar el viaje" fuera del timeline.
  */
 export default function ThermometersGrid() {
   const { items, loading } = useTripItems();
@@ -57,26 +56,17 @@ export default function ThermometersGrid() {
       ) : (
         <>
           <div className={styles.timeline}>
-            {timelineSequence.map((entry, idx) => {
-              if (entry.type === 'flight') {
-                const item = itemsById[entry.itemId];
-                return (
-                  <FlightBanner
-                    key={`flight-${entry.itemId}-${idx}`}
-                    label={entry.label}
-                    item={item}
-                  />
-                );
-              }
-              const cityCards = entry.itemIds
+            {cities.map((city) => {
+              const cityCards = city.itemIds
                 .map((id) => itemsById[id])
                 .filter(Boolean);
               return (
                 <CityNode
-                  key={entry.id}
-                  name={entry.name}
-                  nights={entry.nights}
-                  days={entry.days}
+                  key={city.id}
+                  name={city.name}
+                  nights={city.nights}
+                  days={city.days}
+                  showMeta={city.showMeta !== false}
                 >
                   {cityCards.map((it) => (
                     <TripItemCard key={it.id} item={it} />

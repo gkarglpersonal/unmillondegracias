@@ -23,6 +23,14 @@
   box-shadow: var(--shadow-soft);
 }
 
+/* Variante para tarjetas de vuelo: mismo formato y tamaño que las demás,
+ * solo cambia el fondo a un verde eucalipto muy diluido (8 % sobre blanco)
+ * para distinguirlas sutilmente sin competir con el botón "Regalar". */
+.cardFlight {
+  background: color-mix(in srgb, var(--color-alpine-500) 8%, var(--color-white));
+  border-color: rgba(61, 82, 51, 0.14);
+}
+
 /* ----- 1. Bloque superior: head + descripción colapsable ----- */
 .titleBlock {
   display: flex;

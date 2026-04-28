@@ -21,8 +21,10 @@ export default function TripItemCard({ item }) {
   const { openForm } = useFormModal();
   const [expanded, setExpanded] = useState(false);
 
+  const isFlight = item.category === 'flight';
+
   return (
-    <article className={styles.card}>
+    <article className={`${styles.card} ${isFlight ? styles.cardFlight : ''}`}>
       <div className={styles.titleBlock}>
         <button
           type="button"
