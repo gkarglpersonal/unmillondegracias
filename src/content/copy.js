@@ -7,7 +7,7 @@ export const copy = {
     eyebrow: 'Un millón de gracias',
     title: '40 años. Miles de niños. Una maestra que lo ha dado todo.',
     subtitle:
-      'Mariángeles dedicó más de cuatro décadas a su vocación con ánimo, ilusión y una entrega que marcó a generaciones. Es nuestro turno de devolverle aunque sea una pequeña parte de todo lo que nos ha dado.',
+      'Mariángeles ha dedicado más de cuatro décadas a su vocación con ánimo, ilusión y una entrega que ha marcado a generaciones. Es nuestro turno de devolverle aunque sea una pequeña parte de todo lo que nos ha dado.',
     contributorCounter: (n) => {
       if (!n || n <= 0) return 'Sé el primero en sumarte.';
       if (n === 1) return '1 persona se ha sumado.';

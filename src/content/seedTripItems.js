@@ -1,19 +1,20 @@
 /**
  * Lista definitiva de las 29 partidas del viaje a Argentina.
- * Suma de partidas: 9.720 €.
- * Coste total del viaje: 10.500 € (los 780 € restantes son margen para
- * imprevistos no asignados a una partida concreta).
+ * Suma exacta de partidas: 10.500 € (igual al coste total del viaje).
  *
- * Orden:
- *  - Grupo 1 (orden 1-15): títulos cortos, una sola línea
- *  - Grupo 2 (orden 16-29): títulos largos, dos líneas
+ * Orden cronológico del viaje:
+ *   1-7    vuelos (ida internacional + 5 internos + vuelta internacional)
+ *   8-12   hoteles
+ *   13     traslados
+ *   14-24  excursiones y experiencias
+ *   25-29  gastronomía y extras
  *
  * Categorías (icono Lucide en la tarjeta):
  *   flight | hotel | transport | excursion | wine | entertainment |
  *   food | gift | insurance
  */
 export const seedTripItems = [
-  // ----- Grupo 1: títulos de una línea -----
+  // ----- Vuelos en orden cronológico (1-7) -----
   {
     name: 'El asiento de ida a Buenos Aires',
     description:
@@ -23,20 +24,12 @@ export const seedTripItems = [
     order: 1,
   },
   {
-    name: 'El asiento de vuelta a Madrid',
-    description:
-      'La vuelta, con la maleta llena de recuerdos nuevos. El último regalo de un viaje que no quiere terminar.',
-    targetAmount: 550,
-    category: 'flight',
-    order: 2,
-  },
-  {
     name: 'Buenos Aires → Ushuaia',
     description:
       'Volar hacia el fin del mundo. Literalmente. En una hora, del calor porteño al frío austral.',
     targetAmount: 280,
     category: 'flight',
-    order: 3,
+    order: 2,
   },
   {
     name: 'Ushuaia → El Calafate',
@@ -44,7 +37,7 @@ export const seedTripItems = [
       'De un paisaje imposible a otro. La Patagonia desde el aire, infinita y salvaje.',
     targetAmount: 220,
     category: 'flight',
-    order: 4,
+    order: 3,
   },
   {
     name: 'El Calafate → Iguazú',
@@ -52,24 +45,34 @@ export const seedTripItems = [
       'Cruzar Argentina de sur a norte, de hielo a selva, en un solo día.',
     targetAmount: 280,
     category: 'flight',
-    order: 5,
+    order: 4,
   },
   {
     name: 'Iguazú → Mendoza',
     description:
-      'El último tramo interno. De la selva subtropical a los viñedos andinos. Argentina en toda su diversidad.',
+      'De la selva más impresionante del mundo a los viñedos andinos. Argentina de norte a oeste en un solo vuelo.',
+    targetAmount: 280,
+    category: 'flight',
+    order: 5,
+  },
+  {
+    name: 'Mendoza → Buenos Aires',
+    description:
+      'El último vuelo interno. De regreso a Buenos Aires para tomar el gran vuelo a casa.',
     targetAmount: 320,
     category: 'flight',
     order: 6,
   },
   {
-    name: 'Mendoza → Madrid',
+    name: 'El asiento de vuelta a Madrid',
     description:
-      'El vuelo de vuelta desde Mendoza. Con una copa de Malbec en la memoria y el corazón lleno.',
-    targetAmount: 650,
+      'La vuelta, con la maleta llena de recuerdos nuevos. El último regalo de un viaje que no quiere terminar.',
+    targetAmount: 550,
     category: 'flight',
     order: 7,
   },
+
+  // ----- Hoteles en orden cronológico (8-12) -----
   {
     name: 'Tres noches en Buenos Aires',
     description:
@@ -110,39 +113,25 @@ export const seedTripItems = [
     category: 'hotel',
     order: 12,
   },
+
+  // ----- Traslados (13) -----
   {
     name: 'Traslados y transfers del viaje',
     description:
       'Llegar siempre con alguien esperando. El lujo discreto de no preocuparse por nada logístico.',
-    targetAmount: 280,
+    targetAmount: 380,
     category: 'transport',
     order: 13,
   },
-  {
-    name: 'Bodega con degustación en Mendoza',
-    description:
-      'Un Malbec de autor, tabla de quesos andinos y vistas a la cordillera. Zuccardi o Catena Zapata.',
-    targetAmount: 200,
-    category: 'wine',
-    order: 14,
-  },
-  {
-    name: 'Recuerdos para traer a casa',
-    description:
-      'Un mate de plata labrado, un pañuelo de alpaca patagónica. Algo pequeño que dura toda una vida.',
-    targetAmount: 150,
-    category: 'gift',
-    order: 15,
-  },
 
-  // ----- Grupo 2: títulos de dos líneas -----
+  // ----- Excursiones y experiencias (14-24) -----
   {
     name: 'City tour Buenos Aires y Tierra del Fuego',
     description:
       'Palermo, Recoleta, San Telmo, La Boca — y el cartel que dice Fin de la Ruta 3.',
     targetAmount: 300,
     category: 'excursion',
-    order: 16,
+    order: 14,
   },
   {
     name: 'Glaciar Perito Moreno y Safari Náutico',
@@ -150,7 +139,7 @@ export const seedTripItems = [
       'Pasarelas del glaciar más navegación en lancha hasta su base. Estar de pie frente a 70 metros de hielo vivo.',
     targetAmount: 280,
     category: 'excursion',
-    order: 17,
+    order: 15,
   },
   {
     name: 'Cataratas del Iguazú, ambos lados',
@@ -158,7 +147,7 @@ export const seedTripItems = [
       'La Garganta del Diablo desde Argentina y la vista panorámica desde Brasil. Una maravilla, dos perspectivas.',
     targetAmount: 300,
     category: 'excursion',
-    order: 18,
+    order: 16,
   },
   {
     name: 'Navegación por los glaciares Upsala y Spegazzini',
@@ -166,7 +155,7 @@ export const seedTripItems = [
       'El día libre en El Calafate convertido en aventura. Glaciares que no aparecen en los mapas turísticos.',
     targetAmount: 200,
     category: 'excursion',
-    order: 19,
+    order: 17,
   },
   {
     name: 'La Gran Aventura: lancha bajo las Cataratas',
@@ -174,7 +163,7 @@ export const seedTripItems = [
       'Una embarcación que se mete bajo el agua que cae. Salir empapadas, salir riéndose como niñas.',
     targetAmount: 160,
     category: 'excursion',
-    order: 20,
+    order: 18,
   },
   {
     name: 'Tren del Fin del Mundo en Ushuaia',
@@ -182,7 +171,7 @@ export const seedTripItems = [
       'El tren más austral del planeta atravesando el bosque subantártico. Un capricho que vale cada minuto.',
     targetAmount: 100,
     category: 'excursion',
-    order: 21,
+    order: 19,
   },
   {
     name: 'Día de estancia gaucha en las Pampas',
@@ -190,7 +179,15 @@ export const seedTripItems = [
       'Empanadas, asado, cabalgata y sobremesa larga. La Argentina más auténtica, a una hora de Buenos Aires.',
     targetAmount: 330,
     category: 'excursion',
-    order: 22,
+    order: 20,
+  },
+  {
+    name: 'Bodega con degustación en Mendoza',
+    description:
+      'Un Malbec de autor, tabla de quesos andinos y vistas a la cordillera. Zuccardi o Catena Zapata.',
+    targetAmount: 200,
+    category: 'wine',
+    order: 21,
   },
   {
     name: 'Día de montaña en los Andes desde Mendoza',
@@ -198,7 +195,7 @@ export const seedTripItems = [
       'Aconcagua a lo lejos, aire puro y silencio. La otra cara de Mendoza, la que no es viñedo.',
     targetAmount: 150,
     category: 'excursion',
-    order: 23,
+    order: 22,
   },
   {
     name: 'Noche de tango y cena en San Telmo',
@@ -206,7 +203,7 @@ export const seedTripItems = [
       'Cena y espectáculo en El Querandi o La Ventana. El bandoneón, las miradas cómplices, el primer paso.',
     targetAmount: 220,
     category: 'entertainment',
-    order: 24,
+    order: 23,
   },
   {
     name: 'Una cena especial en Buenos Aires',
@@ -214,29 +211,39 @@ export const seedTripItems = [
       'Una mesa en Don Julio o Tegui. Vino bueno, conversación larga y un menú que se recordará durante años.',
     targetAmount: 180,
     category: 'food',
-    order: 25,
+    order: 24,
   },
+
+  // ----- Gastronomía y extras (25-29) -----
   {
     name: 'Almuerzo en viñedo bajo el sol de Mendoza',
     description:
       'La mesa puesta entre hileras de vides. Las copas brillando con la última luz del día.',
     targetAmount: 160,
     category: 'food',
-    order: 26,
+    order: 25,
   },
   {
     name: 'Cafés, antojos y placeres del camino',
     description:
       'Medialunas porteñas, centolla en Ushuaia, fruta tropical en Iguazú, empanadas mendocinas.',
-    targetAmount: 250,
+    targetAmount: 400,
     category: 'food',
+    order: 26,
+  },
+  {
+    name: 'Recuerdos para traer a casa',
+    description:
+      'Un mate de plata labrado, un pañuelo de alpaca patagónica. Algo pequeño que dura toda una vida.',
+    targetAmount: 150,
+    category: 'gift',
     order: 27,
   },
   {
     name: 'Imprevistos y momentos espontáneos',
     description:
       'El taxi nocturno, la excursión de última hora, el helado junto al lago. Para que nada se quede sin vivir.',
-    targetAmount: 400,
+    targetAmount: 1130,
     category: 'gift',
     order: 28,
   },
@@ -244,7 +251,7 @@ export const seedTripItems = [
     name: 'Seguro de viaje para todo el recorrido',
     description:
       'Para que viajar tranquila también sea parte del regalo. 16 días, dos personas, sin preocupaciones.',
-    targetAmount: 310,
+    targetAmount: 480,
     category: 'insurance',
     order: 29,
   },
@@ -254,5 +261,5 @@ export const seedConfig = {
   totalTripCost: 10500,
   heroTitle: '40 años. Miles de niños. Una maestra que lo ha dado todo.',
   heroSubtitle:
-    'Mariángeles dedicó más de cuatro décadas a su vocación con ánimo, ilusión y una entrega que marcó a generaciones. Es nuestro turno de devolverle aunque sea una pequeña parte de todo lo que nos ha dado.',
+    'Mariángeles ha dedicado más de cuatro décadas a su vocación con ánimo, ilusión y una entrega que ha marcado a generaciones. Es nuestro turno de devolverle aunque sea una pequeña parte de todo lo que nos ha dado.',
 };
