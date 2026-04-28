@@ -26,3 +26,15 @@
 @media (min-width: 768px) {
   .number { font-size: 2.75rem; }
 }
+
+/* ----- Estado vacío: invitación a ser el primero ----- */
+.empty {
+  /* hereda color honey del .counter */
+}
+
+.emptyText {
+  font-size: var(--fs-body-lg);
+  font-weight: var(--fw-medium);
+  color: var(--honey);
+  letter-spacing: -0.005em;
+}

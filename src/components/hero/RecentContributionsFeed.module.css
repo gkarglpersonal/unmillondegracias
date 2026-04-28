@@ -39,3 +39,15 @@
 .time {
   color: var(--text-subtle);
 }
+
+/* ----- Estado vacío: invitación a ser el primero ----- */
+.empty {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  font-size: var(--fs-body-sm);
+  color: var(--text-subtle);
+  font-style: italic;
+  animation: fadeIn 480ms var(--ease-out);
+}

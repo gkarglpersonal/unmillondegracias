@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { formSchema, defaultFormValues } from './formSchema.js';
@@ -6,6 +6,7 @@ import { copy } from '../../content/copy.js';
 import { useTripItems } from '../../hooks/useTripItems.js';
 import TripItemPicker from './TripItemPicker.jsx';
 import PhotoUploader from './PhotoUploader.jsx';
+import AmountField from './AmountField.jsx';
 import { uploadPhoto } from '../../firebase/storage.js';
 import { createContribution } from '../../firebase/contributions.js';
 import { notifyPangea, notifyAdmin } from '../../firebase/email.js';
@@ -33,6 +34,8 @@ export default function ParticipationForm({
     register,
     handleSubmit,
     control,
+    setValue,
+    watch,
     formState: { errors },
   } = useForm({
     resolver: zodResolver(formSchema),
@@ -45,6 +48,14 @@ export default function ParticipationForm({
   const lockedItem = lockedTripItemId
     ? tripItems.find((t) => t.id === lockedTripItemId)
     : null;
+
+  // Cuando se conoce la partida bloqueada y tiene targetAmount, prerrellenar
+  // el campo de importe como sugerencia. La persona puede cambiarlo o vaciarlo.
+  useEffect(() => {
+    if (lockedItem?.targetAmount) {
+      setValue('amount', lockedItem.targetAmount, { shouldDirty: false });
+    }
+  }, [lockedItem, setValue]);
 
   const onValid = async (data) => {
     setSubmitting(true);
@@ -188,21 +199,14 @@ export default function ParticipationForm({
           )}
         />
 
-        {/* Monto */}
-        <label className={styles.field}>
-          <span className={styles.label}>{copy.form.fields.amount}</span>
-          <input
-            type="number"
-            inputMode="decimal"
-            min="1"
-            step="1"
-            placeholder="—"
-            {...register('amount')}
-            aria-invalid={!!errors.amount}
-          />
-          <span className={styles.hint}>{copy.form.fields.amountHint}</span>
-          {errors.amount && <span className={styles.err}>{errors.amount.message}</span>}
-        </label>
+        {/* Importe — sugerido si hay partida bloqueada, o presets rápidos */}
+        <AmountField
+          register={register}
+          setValue={setValue}
+          watch={watch}
+          error={errors.amount}
+          suggestedAmount={lockedItem?.targetAmount ?? null}
+        />
       </div>
 
       {submitError && <p className={styles.submitError}>{submitError}</p>}

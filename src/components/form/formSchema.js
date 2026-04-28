@@ -34,7 +34,7 @@ export const formSchema = z.object({
       return Number.isFinite(n) ? n : NaN;
     })
     .refine((v) => v === null || (v > 0 && v <= 100000), {
-      message: 'Indica un monto entre 1 y 100.000 €, o déjalo en blanco.',
+      message: 'Indica un importe entre 1 y 100.000 €, o déjalo en blanco.',
     })
     .nullable()
     .optional(),
