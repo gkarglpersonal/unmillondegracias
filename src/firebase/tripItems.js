@@ -5,7 +5,6 @@ import {
   onSnapshot,
   orderBy,
   query,
-  where,
   setDoc,
   updateDoc,
   deleteDoc,
@@ -22,23 +21,24 @@ function onListenerError(err) {
 }
 
 export function subscribeTripItems(callback, { onlyActive = true } = {}) {
-  const constraints = [orderBy('order', 'asc')];
-  if (onlyActive) constraints.unshift(where('active', '==', true));
-  const q = query(collection(db, COL), ...constraints);
+  // Solo orderBy: Firestore lo auto-indexa. Si añadimos `where active==true`
+  // junto con orderBy('order'), Firestore exige un índice compuesto que
+  // no merece la pena declarar para 25 documentos. Filtramos en cliente.
+  const q = query(collection(db, COL), orderBy('order', 'asc'));
   return onSnapshot(
     q,
     (snap) => {
-      callback(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+      const items = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      callback(onlyActive ? items.filter((i) => i.active !== false) : items);
     },
     onListenerError
   );
 }
 
 export async function fetchTripItems({ onlyActive = true } = {}) {
-  const constraints = [orderBy('order', 'asc')];
-  if (onlyActive) constraints.unshift(where('active', '==', true));
-  const snap = await getDocs(query(collection(db, COL), ...constraints));
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  const snap = await getDocs(query(collection(db, COL), orderBy('order', 'asc')));
+  const items = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  return onlyActive ? items.filter((i) => i.active !== false) : items;
 }
 
 export async function createTripItem(data) {
