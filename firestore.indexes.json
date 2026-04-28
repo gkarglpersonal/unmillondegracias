@@ -1,0 +1,38 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "messageWall",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "tripItemId", "order": "ASCENDING" },
+        { "fieldPath": "paid", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "messageWall",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "messageHidden", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "messageWall",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "photoApproved", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "contributions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "paymentStatus", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

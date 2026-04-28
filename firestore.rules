@@ -1,0 +1,67 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper: solo Gerry (admin) puede escribir cosas sensibles.
+    function isAdmin() {
+      return request.auth != null
+        && request.auth.token.email == 'gerardo.kargl@gmail.com';
+    }
+
+    // ------------------------------------------------
+    // tripItems — partidas del viaje (lectura pública)
+    // ------------------------------------------------
+    match /tripItems/{itemId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    // ------------------------------------------------
+    // messageWall — mirror público (nombre, mensaje, foto si aprobada)
+    // Cualquiera puede crear con shape válido. Solo admin edita/borra.
+    // ------------------------------------------------
+    match /messageWall/{messageId} {
+      allow read: if true;
+
+      allow create: if
+        request.resource.data.keys().hasAll(['name', 'createdAt', 'photoApproved', 'messageHidden', 'paid'])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() >= 2
+        && request.resource.data.name.size() <= 80
+        && (request.resource.data.message == null || (request.resource.data.message is string && request.resource.data.message.size() <= 2000))
+        && request.resource.data.photoApproved == false
+        && request.resource.data.messageHidden == false
+        && request.resource.data.paid == false;
+
+      allow update, delete: if isAdmin();
+    }
+
+    // ------------------------------------------------
+    // contributions — privado, solo admin lee
+    // Cualquiera puede crear (formulario público). Email/monto privados.
+    // ------------------------------------------------
+    match /contributions/{contributionId} {
+      allow read: if isAdmin();
+
+      allow create: if
+        request.resource.data.keys().hasAll(['name', 'email', 'paymentStatus', 'createdAt'])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() >= 2
+        && request.resource.data.name.size() <= 80
+        && request.resource.data.email is string
+        && request.resource.data.email.matches('^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$')
+        && request.resource.data.paymentStatus == 'pending'
+        && (request.resource.data.amount == null || (request.resource.data.amount is number && request.resource.data.amount >= 0 && request.resource.data.amount <= 100000));
+
+      allow update, delete: if isAdmin();
+    }
+
+    // ------------------------------------------------
+    // config/general — totales, hero copy editable
+    // ------------------------------------------------
+    match /config/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+  }
+}

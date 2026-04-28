@@ -1,0 +1,48 @@
+.fab {
+  position: fixed;
+  right: max(16px, env(safe-area-inset-right));
+  bottom: max(16px, env(safe-area-inset-bottom));
+  z-index: var(--z-sticky);
+
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-5);
+  border-radius: var(--radius-full);
+  border: none;
+  cursor: pointer;
+
+  font-family: var(--font-body);
+  font-weight: var(--fw-semibold);
+  font-size: var(--fs-body);
+  letter-spacing: 0.005em;
+
+  background: var(--cta-bg);
+  color: var(--cta-text);
+  box-shadow: var(--shadow-floating);
+
+  transition: transform var(--transition-base), background var(--transition-base), box-shadow var(--transition-base);
+  animation: fadeUp 480ms var(--ease-out) both;
+}
+
+.fab:hover {
+  background: var(--cta-bg-hover);
+}
+
+.fab:active {
+  transform: scale(0.97);
+}
+
+.icon {
+  flex-shrink: 0;
+  color: var(--color-honey-300);
+}
+
+.label {
+  white-space: nowrap;
+}
+
+/* Solo mobile/tablet — desktop usa el sidebar */
+@media (min-width: 1024px) {
+  .fab { display: none; }
+}

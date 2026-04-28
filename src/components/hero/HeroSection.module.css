@@ -1,0 +1,108 @@
+.hero {
+  display: grid;
+  grid-template-columns: 1fr;
+  background: var(--bg-page);
+}
+
+.portraitWrap {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  position: relative;
+  overflow: hidden;
+  /* Sin radius ni shadow: full-bleed cinematográfico. */
+}
+
+.portraitPlaceholder {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 25% 35%, rgba(201, 168, 76, 0.18) 0%, transparent 55%),
+    radial-gradient(circle at 75% 70%, rgba(61, 82, 51, 0.14) 0%, transparent 60%),
+    linear-gradient(135deg, #f3f4ef 0%, #e9ede4 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.portraitLabel {
+  font-family: var(--font-display);
+  font-size: var(--fs-body-sm);
+  color: var(--color-ink-600);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  padding-block: var(--section-pad-y);
+  padding-inline: var(--section-pad-x);
+  max-width: 1100px;
+}
+
+.eyebrow {
+  font-family: var(--font-body);
+  font-size: var(--fs-body-sm);
+  font-weight: var(--fw-semibold);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--honey);
+  margin: 0;
+}
+
+.title {
+  font-size: var(--fs-hero);
+  font-weight: var(--fw-semibold);
+  line-height: var(--lh-tight);
+  letter-spacing: -0.025em;
+  color: var(--text-primary);
+  margin: 0;
+  max-width: 14ch;
+}
+
+.subtitle {
+  font-size: var(--fs-body-lg);
+  color: var(--text-muted);
+  max-width: 56ch;
+  line-height: var(--lh-relaxed);
+  margin: 0;
+}
+
+.ctaRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  flex-wrap: wrap;
+  margin-top: var(--space-3);
+}
+
+.heartIcon {
+  color: var(--color-honey-300);
+  flex-shrink: 0;
+}
+
+/* En mobile el CTA del hero se oculta: el FAB flotante ya cumple esa función. */
+@media (max-width: 1023px) {
+  .ctaRow .heroBtn { display: none; }
+}
+
+@media (min-width: 1024px) {
+  .hero {
+    grid-template-columns: 5fr 7fr;
+    align-items: stretch;
+    min-height: 88vh;
+  }
+
+  .portraitWrap {
+    aspect-ratio: auto;
+    height: 100%;
+  }
+
+  .content {
+    padding-block: clamp(4rem, 8vw, 8rem);
+    padding-inline: clamp(2rem, 5vw, 5rem);
+    justify-content: center;
+    max-width: 720px;
+  }
+}

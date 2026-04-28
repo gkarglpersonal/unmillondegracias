@@ -1,0 +1,28 @@
+.counter {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  margin: 0;
+  color: var(--honey);
+  font-family: var(--font-body);
+  animation: fadeIn 600ms var(--ease-out);
+}
+
+.number {
+  font-family: var(--font-display);
+  font-size: 2.25rem;
+  font-weight: var(--fw-bold);
+  line-height: 1;
+  letter-spacing: -0.01em;
+  color: var(--honey);
+}
+
+.text {
+  font-size: var(--fs-body);
+  color: var(--honey);
+  font-weight: var(--fw-medium);
+}
+
+@media (min-width: 768px) {
+  .number { font-size: 2.75rem; }
+}

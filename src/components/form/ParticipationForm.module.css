@@ -1,0 +1,157 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  width: 100%;
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin-bottom: var(--space-3);
+}
+
+.title {
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 3vw, 2.75rem);
+  font-weight: var(--fw-semibold);
+  letter-spacing: -0.025em;
+  line-height: 1.05;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.label {
+  font-size: var(--fs-caption);
+  font-weight: var(--fw-semibold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* ===== Estilo underline para inputs del formulario =====
+ * Solo línea inferior, sin fondo, sin borde lateral/superior.
+ * Focus: línea honey gruesa.
+ */
+.fields :is(input, textarea, select) {
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--border-default);
+  border-radius: 0;
+  padding: var(--space-2) 0 var(--space-3);
+  color: var(--text-body);
+  font-size: var(--fs-body-lg);
+  transition: border-color var(--transition-fast), border-width var(--transition-fast);
+}
+
+.fields :is(input, textarea, select):focus {
+  outline: none;
+  border-bottom-color: var(--honey);
+  border-bottom-width: 2px;
+  /* Compensar el +1px para que no salte el contenido */
+  padding-bottom: calc(var(--space-3) - 1px);
+  background: transparent;
+}
+
+.fields :is(input, textarea, select):hover:not(:focus) {
+  border-bottom-color: var(--text-muted);
+}
+
+.fields input::placeholder,
+.fields textarea::placeholder {
+  color: var(--text-subtle);
+}
+
+.fields select {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='8' viewBox='0 0 14 8' fill='none'><path d='M1 1l6 6 6-6' stroke='%23555' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right center;
+  background-size: 12px 7px;
+  padding-right: 20px;
+  cursor: pointer;
+}
+
+.hint {
+  font-size: var(--fs-caption);
+  color: var(--text-subtle);
+  font-style: italic;
+}
+
+.err {
+  font-size: var(--fs-caption);
+  color: var(--color-error);
+  margin-top: 2px;
+}
+
+.submitError {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  background: rgba(178, 90, 71, 0.10);
+  border: 1px solid rgba(178, 90, 71, 0.25);
+  border-radius: var(--radius-md);
+  color: var(--color-error);
+  font-size: var(--fs-body-sm);
+}
+
+.submitBtn {
+  width: 100%;
+  margin-top: var(--space-2);
+}
+
+/* ----- Variant: sidebar ----- */
+.variant_sidebar {
+  /* La tarjeta blanca interior dentro del sidebar alpine */
+  background: var(--color-white);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  box-shadow: var(--shadow-medium);
+}
+
+/* ----- Variant: modal ----- */
+.variant_modal {
+  background: transparent;
+}
+
+/* ----- Variant: inline ----- */
+.variant_inline {
+  background: transparent;
+}
+
+/* Textarea del mensaje: alto suficiente para mostrar las 3 preguntas
+ * de inspiración como placeholder en tamaño caption sin que se corten.
+ * Cálculo: 3 preguntas + intro = ~7 líneas tras wraps a 13 px × 1.55 LH
+ * ≈ 140 px de contenido + padding. min-height 220 px deja respirar. */
+.fields textarea {
+  resize: vertical;
+  min-height: 220px;
+  font-family: inherit;
+  font-size: var(--fs-body);
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
+.fields textarea::placeholder {
+  font-size: var(--fs-caption);
+  line-height: 1.55;
+  color: #999999;
+  font-style: normal;
+  letter-spacing: 0;
+  text-transform: none;
+  white-space: pre-wrap;
+}
