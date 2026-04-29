@@ -9,6 +9,7 @@ import {
   updateDoc,
   deleteDoc,
   serverTimestamp,
+  writeBatch,
 } from 'firebase/firestore';
 import { db } from './config.js';
 
@@ -63,4 +64,17 @@ export async function updateTripItem(id, patch) {
 
 export async function deleteTripItem(id) {
   await deleteDoc(doc(db, COL, id));
+}
+
+/**
+ * Reasigna el campo `order` de varios items en una sola operación atómica.
+ * `updates` es un array de { id, order }.
+ */
+export async function batchUpdateOrders(updates) {
+  if (!updates.length) return;
+  const batch = writeBatch(db);
+  for (const { id, order } of updates) {
+    batch.update(doc(db, COL, id), { order: Number(order) });
+  }
+  await batch.commit();
 }
