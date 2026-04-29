@@ -8,17 +8,9 @@
 .imageWrap {
   position: relative;
   width: 100%;
-  aspect-ratio: 4 / 5;
+  height: 200px;
+  border-radius: 12px;
   overflow: hidden;
-  /* Sin radius ni shadow: cinematográfico full-width. */
-}
-
-/* En móvil ahora vive dentro de un carrusel: el imageWrap se queda dentro
- * del slide en vez de extenderse a los bordes de pantalla. */
-@media (max-width: 899px) {
-  .imageWrap {
-    aspect-ratio: 4 / 3;
-  }
 }
 
 .image {
@@ -31,22 +23,25 @@
   position: absolute;
   inset: 0;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: var(--space-6);
-  background:
-    radial-gradient(circle at 30% 25%, rgba(201, 168, 76, 0.16) 0%, transparent 60%),
-    linear-gradient(150deg, #eef1ea 0%, #d9e0d2 100%);
+  gap: 8px;
+  padding: var(--space-5);
+  background: #f0e8d8;
+  border-radius: 12px;
 }
 
-.placeholderLabel {
-  font-family: var(--font-display);
-  font-size: clamp(1.75rem, 3.6vw, 2.75rem);
-  font-weight: var(--fw-semibold);
-  line-height: var(--lh-tight);
-  letter-spacing: -0.02em;
-  color: var(--color-alpine-700);
+.placeholderIcon {
+  color: #a89070;
+}
+
+.placeholderText {
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: #a89070;
   text-align: center;
+  letter-spacing: 0.01em;
 }
 
 .body {

@@ -9,6 +9,7 @@ import {
   CITY_OPTIONS,
   resolveItemCity,
 } from '../../content/tripCities.js';
+import { MOBILE_COLLAGE } from '../../content/cityImages.js';
 import TripItemCard from './TripItemCard.jsx';
 import CityNode from './CityNode.jsx';
 import styles from './ThermometersGrid.module.css';
@@ -125,8 +126,19 @@ export default function ThermometersGrid() {
             )}
           </div>
 
-          {/* Mobile: carrusel horizontal con scroll snap */}
+          {/* Mobile: collage inspiracional + carrusel horizontal con scroll snap */}
           <div className={styles.mobileOnly}>
+            <div className={styles.mobileCollage} aria-hidden="true">
+              {MOBILE_COLLAGE.map((img, idx) => (
+                <img
+                  key={img.src}
+                  src={img.src}
+                  alt={img.alt}
+                  className={`${styles.collageImg} ${idx === 2 ? styles.collageWide : ''}`}
+                  loading="lazy"
+                />
+              ))}
+            </div>
             <MobileCarousel slides={mobileSlides} />
           </div>
         </>
