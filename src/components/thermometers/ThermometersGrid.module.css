@@ -151,6 +151,26 @@
 /* ================================================================
  * Carrusel móvil
  * ================================================================ */
+.mobileCollage {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 130px 130px;
+  gap: 8px;
+  margin-bottom: var(--space-5);
+}
+
+.collageImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 8px;
+  display: block;
+}
+
+.collageWide {
+  grid-column: 1 / -1;
+}
+
 .carousel {
   display: flex;
   flex-direction: column;
