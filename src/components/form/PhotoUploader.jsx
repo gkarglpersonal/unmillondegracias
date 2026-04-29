@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { ShieldCheck } from 'lucide-react';
 import { compressImage } from '../../utils/compressImage.js';
 import { copy } from '../../content/copy.js';
 import styles from './PhotoUploader.module.css';
@@ -85,6 +86,12 @@ export default function PhotoUploader({ value, onChange }) {
       )}
 
       {err && <p className={styles.err}>{err}</p>}
+
+      <p className={styles.privacyNotice}>
+        <ShieldCheck size={12} aria-hidden="true" className={styles.privacyIcon} />
+        Por favor, no subas fotos donde aparezcan menores de edad actuales sin el
+        consentimiento de sus padres o tutores.
+      </p>
     </div>
   );
 }

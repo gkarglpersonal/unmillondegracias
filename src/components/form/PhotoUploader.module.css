@@ -74,3 +74,20 @@
   font-size: var(--fs-caption);
   color: var(--color-error);
 }
+
+.privacyNotice {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--text-subtle);
+}
+
+.privacyIcon {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--text-subtle);
+}
