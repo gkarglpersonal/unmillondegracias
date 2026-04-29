@@ -64,7 +64,7 @@ export async function generateMessagesPdf(messages, { totalContributors = null }
       }
     );
   }
-  cover.drawText('Colegio Everest de Monteclaro', {
+  cover.drawText('Hecho con cariño · Por las familias y exalumnos que pasaron por su clase', {
     x: MARGIN_X,
     y: MARGIN_Y,
     size: 11,
