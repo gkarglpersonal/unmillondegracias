@@ -46,12 +46,18 @@ export default function TripItemsManager() {
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(blank);
   const [busy, setBusy] = useState(false);
+  const [errorMsg, setErrorMsg] = useState(null);
 
   // Estado de gestión de secciones
   const [renamingId, setRenamingId] = useState(null);
   const [renameValue, setRenameValue] = useState('');
   const [pendingDelete, setPendingDelete] = useState(null);
   const [activeDragId, setActiveDragId] = useState(null);
+
+  const reportError = (label, err) => {
+    console.error(`[admin partidas] ${label}:`, err);
+    setErrorMsg(`${label}: ${err?.code || err?.message || 'fallo desconocido'}`);
+  };
 
   // Bootstrap: si la colección sections está vacía, sembrar con CITY_OPTIONS
   const seededRef = useRef(false);
@@ -62,11 +68,25 @@ export default function TripItemsManager() {
     seededRef.current = true;
     Promise.all(CITY_OPTIONS.map((name, idx) => createSection({ name, order: idx + 1 }))).catch(
       (err) => {
-        console.warn('seed sections failed:', err);
         seededRef.current = false;
+        reportError('Sembrar secciones automático', err);
       }
     );
   }, [sectionsLoading, sections.length, items.length]);
+
+  const seedSectionsManually = async () => {
+    setErrorMsg(null);
+    setBusy(true);
+    try {
+      await Promise.all(
+        CITY_OPTIONS.map((name, idx) => createSection({ name, order: idx + 1 }))
+      );
+    } catch (err) {
+      reportError('Sembrar secciones', err);
+    } finally {
+      setBusy(false);
+    }
+  };
 
   // Items agrupados por nombre de sección + bucket "Sin asignar"
   const itemsBySection = useMemo(() => {
@@ -168,18 +188,26 @@ export default function TripItemsManager() {
 
   // ---------- Gestión de secciones ----------
   const handleAddSection = async () => {
-    const maxOrder = sections.reduce((m, s) => Math.max(m, Number(s.order) || 0), 0);
-    const baseName = 'Nueva sección';
-    let n = 1;
-    let name = baseName;
-    const existing = new Set(sections.map((s) => s.name));
-    while (existing.has(name)) {
-      n += 1;
-      name = `${baseName} ${n}`;
+    setErrorMsg(null);
+    setBusy(true);
+    try {
+      const maxOrder = sections.reduce((m, s) => Math.max(m, Number(s.order) || 0), 0);
+      const baseName = 'Nueva sección';
+      let n = 1;
+      let name = baseName;
+      const existing = new Set(sections.map((s) => s.name));
+      while (existing.has(name)) {
+        n += 1;
+        name = `${baseName} ${n}`;
+      }
+      const id = await createSection({ name, order: maxOrder + 1 });
+      setRenamingId(id);
+      setRenameValue(name);
+    } catch (err) {
+      reportError('Crear sección', err);
+    } finally {
+      setBusy(false);
     }
-    const id = await createSection({ name, order: maxOrder + 1 });
-    setRenamingId(id);
-    setRenameValue(name);
   };
 
   const startRename = (section) => {
@@ -198,10 +226,13 @@ export default function TripItemsManager() {
       cancelRename();
       return;
     }
+    setErrorMsg(null);
     setBusy(true);
     try {
       await renameSection(section.id, section.name, next);
       cancelRename();
+    } catch (err) {
+      reportError('Renombrar sección', err);
     } finally {
       setBusy(false);
     }
@@ -213,10 +244,13 @@ export default function TripItemsManager() {
 
   const handleDeleteAll = async () => {
     if (!pendingDelete) return;
+    setErrorMsg(null);
     setBusy(true);
     try {
       await deleteSectionAndItems(pendingDelete.id, pendingDelete.name);
       setPendingDelete(null);
+    } catch (err) {
+      reportError('Eliminar sección', err);
     } finally {
       setBusy(false);
     }
@@ -224,10 +258,13 @@ export default function TripItemsManager() {
 
   const handleMoveToUnassigned = async () => {
     if (!pendingDelete) return;
+    setErrorMsg(null);
     setBusy(true);
     try {
       await deleteSectionMoveToUnassigned(pendingDelete.id, pendingDelete.name);
       setPendingDelete(null);
+    } catch (err) {
+      reportError('Mover items a Sin asignar', err);
     } finally {
       setBusy(false);
     }
@@ -360,6 +397,14 @@ export default function TripItemsManager() {
     </form>
   );
 
+  // Si el item en edición está en "Sin asignar" (no hay fila inline donde
+  // mostrar el form), renderizamos el formulario en la parte superior.
+  const editingItem =
+    editing && editing !== 'new' ? items.find((it) => it.id === editing) : null;
+  const sectionNamesSet = new Set(sections.map((s) => s.name));
+  const editingIsUnassigned =
+    editingItem && (!editingItem.city || !sectionNamesSet.has(editingItem.city));
+
   return (
     <section className={styles.section}>
       <header className={styles.header}>
@@ -378,12 +423,35 @@ export default function TripItemsManager() {
         </div>
       </header>
 
+      {errorMsg && (
+        <div className={styles.errorBanner} role="alert">
+          <span>⚠️ {errorMsg}</span>
+          <button type="button" onClick={() => setErrorMsg(null)} aria-label="Cerrar">×</button>
+        </div>
+      )}
+
       {editing === 'new' && renderForm('new')}
+      {editingIsUnassigned && renderForm('edit')}
 
       {sections.length === 0 ? (
-        <p className={styles.empty}>
-          {sectionsLoading ? 'Cargando secciones…' : 'No hay secciones. Crea la primera.'}
-        </p>
+        <div className={styles.empty}>
+          <p>
+            {sectionsLoading
+              ? 'Cargando secciones…'
+              : 'No hay secciones. Crea la primera o siembra las 6 ciudades por defecto.'}
+          </p>
+          {!sectionsLoading && (
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={seedSectionsManually}
+              disabled={busy}
+              style={{ marginTop: '12px' }}
+            >
+              {busy ? 'Sembrando…' : 'Sembrar secciones iniciales'}
+            </button>
+          )}
+        </div>
       ) : (
         <DndContext
           sensors={sensors}
