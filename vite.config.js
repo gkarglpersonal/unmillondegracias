@@ -3,15 +3,14 @@ import react from '@vitejs/plugin-react';
 
 /**
  * Base path:
- *  - Dev local: '/' (limpio).
- *  - Build por defecto: '/unmillondegracias/' (GitHub Pages bajo la org/user).
- *  - Cuando el custom domain unmillondegracias.com esté activo, añadir el
- *    secret VITE_BASE_PATH=/ en GitHub Actions y se publicará en raíz sin
- *    tocar código.
+ *  - Dev local y build por defecto: '/' (custom domain unmillondegracias.com,
+ *    servido desde la raíz vía CNAME en public/CNAME).
+ *  - Si en el futuro hay que volver a publicar bajo gkarglpersonal.github.io/unmillondegracias/,
+ *    setear el secret VITE_BASE_PATH=/unmillondegracias/ en GitHub Actions
+ *    (y actualizar public/404.html → pathSegmentsToKeep = 1).
  */
-export default defineConfig(({ command }) => {
-  const base =
-    process.env.VITE_BASE_PATH ?? (command === 'build' ? '/unmillondegracias/' : '/');
+export default defineConfig(() => {
+  const base = process.env.VITE_BASE_PATH ?? '/';
 
   return {
     plugins: [react()],
