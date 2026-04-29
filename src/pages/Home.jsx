@@ -44,7 +44,7 @@ export default function Home() {
             borderTop: '1px solid var(--border-soft)',
           }}
         >
-          Hecho con cariño · Colegio Everest de Monteclaro
+          Hecho con cariño · Por las familias y exalumnos que pasaron por su clase
         </footer>
       </Layout>
     </FormProvider>
