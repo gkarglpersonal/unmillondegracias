@@ -1,8 +1,7 @@
 /**
  * Imágenes inspiracionales por ciudad para la sección de experiencias.
- * Los archivos viven en /public/images/. El nombre del archivo de Iguazú
- * lleva un acento (ú = U+00FA) y va URL-encoded como %C3%BA para evitar
- * problemas en algunos navegadores.
+ * Los archivos viven en /public/images/ con nombres ASCII-only para evitar
+ * cualquier problema de codificación al servirlos desde GitHub Pages.
  */
 export const CITY_IMAGES = {
   'Buenos Aires': {
@@ -21,7 +20,7 @@ export const CITY_IMAGES = {
     alt: 'Glaciar Perito Moreno',
   },
   'Iguazú': {
-    src: '/images/Iguaz%C3%BA_-_Gemini.png',
+    src: '/images/Iguazu_-_Gemini.png',
     caption:
       'Las Cataratas del Iguazú, el espectáculo natural más impresionante de América',
     alt: 'Cataratas del Iguazú',
@@ -36,6 +35,6 @@ export const CITY_IMAGES = {
 /** Tres imágenes para el collage del top del carrusel móvil. */
 export const MOBILE_COLLAGE = [
   { src: '/images/Perito_Moreno_-_Gemini.png', alt: 'Glaciar Perito Moreno' },
-  { src: '/images/Iguaz%C3%BA_-_Gemini.png', alt: 'Cataratas del Iguazú' },
+  { src: '/images/Iguazu_-_Gemini.png', alt: 'Cataratas del Iguazú' },
   { src: '/images/Buenos_Aires_-_Gemini.png', alt: 'Buenos Aires' },
 ];
