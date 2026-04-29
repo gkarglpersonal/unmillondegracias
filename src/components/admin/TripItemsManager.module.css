@@ -52,10 +52,52 @@
   justify-content: flex-end;
 }
 
+/* ----- Grupos por ciudad ----- */
+.groups {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.cityGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.cityGroupTitle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-h3);
+  font-weight: var(--fw-semibold);
+  color: var(--color-alpine-600);
+  letter-spacing: -0.01em;
+}
+
+.cityGroupCount {
+  font-family: var(--font-body);
+  font-size: var(--fs-caption);
+  font-weight: var(--fw-semibold);
+  color: var(--text-subtle);
+  background: var(--color-alpine-50);
+  border-radius: var(--radius-full);
+  padding: 2px 8px;
+  letter-spacing: 0.04em;
+}
+
 .list {
   list-style: none;
   padding: 0;
   margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.rowWrap {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
@@ -73,11 +115,41 @@
 
 .rowInactive { opacity: 0.55; }
 
+.rowDragging {
+  box-shadow: var(--shadow-medium);
+  border-color: var(--color-alpine-300);
+}
+
+.dragHandle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background: transparent;
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-sm);
+  color: var(--text-subtle);
+  cursor: grab;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.dragHandle:hover {
+  background: var(--color-alpine-50);
+  color: var(--color-alpine-600);
+}
+
+.dragHandle:active {
+  cursor: grabbing;
+}
+
 .rowMain {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
   flex: 1;
+  min-width: 0;
 }
 
 .rowHead {
@@ -154,6 +226,11 @@
 }
 .deleteBtn:hover { text-decoration: underline; }
 .deleteBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.inlineForm {
+  margin-left: var(--space-7);
+  margin-right: var(--space-2);
+}
 
 .empty {
   font-style: italic;
