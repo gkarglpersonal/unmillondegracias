@@ -40,12 +40,12 @@ export const copy = {
       },
       {
         period: 'Los años intermedios',
-        caption: 'Con su amiga y compañera Ivonne. Madrid, mayo de 2004.',
+        caption: 'La misma energía de siempre, en cada lugar y en cada momento.',
         photoUrl: '/images/Mariangeles_intermedios.jpeg',
       },
       {
         period: 'Los años recientes',
-        caption: '',
+        caption: 'Una maestra así solo se encuentra una vez en la vida.',
         photoUrl: null,
       },
     ],
