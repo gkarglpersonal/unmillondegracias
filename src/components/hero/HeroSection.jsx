@@ -10,7 +10,7 @@ export default function HeroSection() {
     <header className={styles.hero}>
       <div className={styles.portraitWrap}>
         <img
-          src="/mariangeles-placeholder.png"
+          src="/images/Mariangeles_Hero.png"
           alt="Mariángeles"
           className={styles.portraitImg}
         />

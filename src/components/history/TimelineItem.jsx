@@ -26,7 +26,7 @@ export default function TimelineItem({ index, period, caption, photoUrl }) {
       </div>
       <div className={styles.body}>
         <p className={styles.period}>{period}</p>
-        <p className={styles.caption}>{caption}</p>
+        {caption && <p className={styles.caption}>{caption}</p>}
       </div>
     </article>
   );
