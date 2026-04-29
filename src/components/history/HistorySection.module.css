@@ -60,23 +60,24 @@
     display: flex;
     flex-direction: row;
     flex-wrap: nowrap;
-    gap: 0;
+    gap: 12px;
     overflow-x: auto;
     scroll-snap-type: x mandatory;
     scroll-behavior: smooth;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
     margin-inline: calc(-1 * var(--section-pad-x));
-    padding-inline: var(--section-pad-x);
+    padding-left: 16px;
+    padding-right: 16px;
+    scroll-padding-left: 16px;
   }
 
   .timeline::-webkit-scrollbar { display: none; }
 
   .timelineSlide {
-    flex: 0 0 85%;
+    flex: 0 0 calc(100vw - 48px);
     scroll-snap-align: start;
     scroll-snap-stop: always;
-    padding-right: var(--space-4);
     box-sizing: border-box;
     display: block;
   }

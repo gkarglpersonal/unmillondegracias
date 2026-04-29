@@ -1,32 +1,39 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useTripItems } from '../../hooks/useTripItems.js';
 import { useConfig } from '../../hooks/useConfig.js';
 import { percent } from '../../utils/formatCurrency.js';
-import { timelineSequence, closingItemIds } from '../../content/tripCities.js';
+import {
+  timelineSequence,
+  closingItemIds,
+  CITY_OPTIONS,
+  resolveItemCity,
+} from '../../content/tripCities.js';
 import TripItemCard from './TripItemCard.jsx';
 import CityNode from './CityNode.jsx';
 import styles from './ThermometersGrid.module.css';
 
 /**
- * Agrupa el `timelineSequence` en slides móviles. Cada slide es un vuelo
- * (o vuelos) seguido de la ciudad de destino. El último slide contiene los
- * vuelos de regreso + las tarjetas de cierre.
+ * Agrupa las partidas por ciudad para el carrusel móvil.
+ * - Sigue el orden de CITY_OPTIONS (Buenos Aires, Ushuaia, ...).
+ * - Dentro de cada ciudad: vuelos primero (por order), luego el resto
+ *   (por order). Esto garantiza que el vuelo de llegada sea la primera
+ *   tarjeta del slide, sin duplicados entre slides.
  */
-function buildMobileSlides(timeline, closingIds) {
-  const slides = [];
-  let pendingFlights = [];
-  for (const entry of timeline) {
-    if (entry.type === 'flight') {
-      pendingFlights.push(entry.itemId);
-    } else {
-      slides.push({ flightIds: pendingFlights, city: entry, closingIds: [] });
-      pendingFlights = [];
-    }
+function buildCitySlides(items) {
+  const byCity = {};
+  for (const city of CITY_OPTIONS) byCity[city] = [];
+  for (const it of items) {
+    const city = resolveItemCity(it);
+    if (city && byCity[city]) byCity[city].push(it);
   }
-  if (pendingFlights.length || closingIds.length) {
-    slides.push({ flightIds: pendingFlights, city: null, closingIds });
-  }
-  return slides;
+  const sortByOrder = (a, b) => (a.order || 99) - (b.order || 99);
+  return CITY_OPTIONS.map((city) => {
+    const list = byCity[city];
+    const flights = list.filter((it) => it.category === 'flight').sort(sortByOrder);
+    const others = list.filter((it) => it.category !== 'flight').sort(sortByOrder);
+    return { city, items: [...flights, ...others] };
+  }).filter((slide) => slide.items.length > 0);
 }
 
 export default function ThermometersGrid() {
@@ -46,10 +53,7 @@ export default function ThermometersGrid() {
   const tripPct = percent(totalRaised, totalCost);
 
   const closingItems = closingItemIds.map((id) => itemsById[id]).filter(Boolean);
-  const mobileSlides = useMemo(
-    () => buildMobileSlides(timelineSequence, closingItemIds),
-    []
-  );
+  const mobileSlides = useMemo(() => buildCitySlides(items), [items]);
 
   return (
     <section className={`${styles.section} section`} id="participar">
@@ -123,7 +127,7 @@ export default function ThermometersGrid() {
 
           {/* Mobile: carrusel horizontal con scroll snap */}
           <div className={styles.mobileOnly}>
-            <MobileCarousel slides={mobileSlides} itemsById={itemsById} />
+            <MobileCarousel slides={mobileSlides} />
           </div>
         </>
       )}
@@ -131,7 +135,7 @@ export default function ThermometersGrid() {
   );
 }
 
-function MobileCarousel({ slides, itemsById }) {
+function MobileCarousel({ slides }) {
   const trackRef = useRef(null);
   const [activeIdx, setActiveIdx] = useState(0);
 
@@ -139,7 +143,7 @@ function MobileCarousel({ slides, itemsById }) {
     const track = trackRef.current;
     if (!track) return;
     const handleScroll = () => {
-      const slideWidth = track.clientWidth;
+      const slideWidth = track.firstElementChild?.getBoundingClientRect().width || track.clientWidth;
       if (!slideWidth) return;
       const idx = Math.round(track.scrollLeft / slideWidth);
       setActiveIdx(Math.max(0, Math.min(slides.length - 1, idx)));
@@ -151,69 +155,50 @@ function MobileCarousel({ slides, itemsById }) {
   const goTo = (idx) => {
     const track = trackRef.current;
     if (!track) return;
-    track.scrollTo({ left: idx * track.clientWidth, behavior: 'smooth' });
+    const slideWidth = track.firstElementChild?.getBoundingClientRect().width || track.clientWidth;
+    track.scrollTo({ left: idx * slideWidth, behavior: 'smooth' });
   };
+
+  const isFirst = activeIdx === 0;
+  const isLast = activeIdx === slides.length - 1;
 
   return (
     <div className={styles.carousel}>
+      <div className={styles.carouselNav}>
+        <button
+          type="button"
+          className={`${styles.navBtn} ${isFirst ? styles.navBtnHidden : ''}`}
+          onClick={() => goTo(activeIdx - 1)}
+          aria-label="Slide anterior"
+          tabIndex={isFirst ? -1 : 0}
+        >
+          <ChevronLeft size={22} strokeWidth={2.5} />
+        </button>
+        <button
+          type="button"
+          className={`${styles.navBtn} ${isLast ? styles.navBtnHidden : ''}`}
+          onClick={() => goTo(activeIdx + 1)}
+          aria-label="Slide siguiente"
+          tabIndex={isLast ? -1 : 0}
+        >
+          <ChevronRight size={22} strokeWidth={2.5} />
+        </button>
+      </div>
+
       <div className={styles.carouselTrack} ref={trackRef}>
-        {slides.map((slide, idx) => {
-          const flights = slide.flightIds
-            .map((id) => itemsById[id])
-            .filter(Boolean);
-          const cityCards = slide.city
-            ? slide.city.itemIds.map((id) => itemsById[id]).filter(Boolean)
-            : [];
-          const closingCards = slide.closingIds
-            .map((id) => itemsById[id])
-            .filter(Boolean);
+        {slides.map((slide, idx) => (
+          <div className={styles.carouselSlide} key={`slide-${idx}`}>
+            <header className={styles.slideCityHeader}>
+              <h3 className={styles.slideCityName}>{slide.city}</h3>
+            </header>
 
-          return (
-            <div className={styles.carouselSlide} key={`slide-${idx}`}>
-              {flights.length > 0 && (
-                <div className={styles.slideFlights}>
-                  {flights.map((it) => (
-                    <TripItemCard key={it.id} item={it} />
-                  ))}
-                </div>
-              )}
-
-              {slide.city && (
-                <header className={styles.slideCityHeader}>
-                  <h3 className={styles.slideCityName}>{slide.city.name}</h3>
-                  <p className={styles.slideCityMeta}>
-                    {slide.city.nights}{' '}
-                    {slide.city.nights === 1 ? 'noche' : 'noches'} ·{' '}
-                    {slide.city.days}
-                  </p>
-                </header>
-              )}
-
-              {cityCards.length > 0 && (
-                <div className={styles.slideCards}>
-                  {cityCards.map((it) => (
-                    <TripItemCard key={it.id} item={it} />
-                  ))}
-                </div>
-              )}
-
-              {closingCards.length > 0 && (
-                <>
-                  <header className={styles.slideCityHeader}>
-                    <h3 className={styles.slideCityName}>
-                      Para completar el viaje
-                    </h3>
-                  </header>
-                  <div className={styles.slideCards}>
-                    {closingCards.map((it) => (
-                      <TripItemCard key={it.id} item={it} />
-                    ))}
-                  </div>
-                </>
-              )}
+            <div className={styles.slideCards}>
+              {slide.items.map((it) => (
+                <TripItemCard key={it.id} item={it} />
+              ))}
             </div>
-          );
-        })}
+          </div>
+        ))}
       </div>
 
       <div className={styles.dots} role="tablist" aria-label="Paradas del viaje">

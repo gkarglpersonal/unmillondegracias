@@ -111,6 +111,16 @@
   letter-spacing: 0.04em;
 }
 
+.cityBadge {
+  font-size: var(--fs-caption);
+  font-weight: var(--fw-semibold);
+  background: var(--color-alpine-50);
+  color: var(--color-alpine-600);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  letter-spacing: 0.02em;
+}
+
 .description {
   margin: 0;
   font-size: var(--fs-body-sm);
