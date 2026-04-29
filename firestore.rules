@@ -17,6 +17,15 @@ service cloud.firestore {
     }
 
     // ------------------------------------------------
+    // sections — agrupación de partidas (lectura pública)
+    // El admin gestiona el orden y los nombres desde el panel.
+    // ------------------------------------------------
+    match /sections/{sectionId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    // ------------------------------------------------
     // messageWall — mirror público (nombre, mensaje, foto si aprobada)
     // Cualquiera puede crear con shape válido. Solo admin edita/borra.
     // ------------------------------------------------
