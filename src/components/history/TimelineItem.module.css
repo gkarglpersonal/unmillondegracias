@@ -13,11 +13,10 @@
   /* Sin radius ni shadow: cinematográfico full-width. */
 }
 
-/* Mobile: rompe el padding lateral del .section para llegar a borde de pantalla. */
+/* En móvil ahora vive dentro de un carrusel: el imageWrap se queda dentro
+ * del slide en vez de extenderse a los bordes de pantalla. */
 @media (max-width: 899px) {
   .imageWrap {
-    margin-inline: calc(-1 * var(--section-pad-x));
-    width: calc(100% + 2 * var(--section-pad-x));
     aspect-ratio: 4 / 3;
   }
 }

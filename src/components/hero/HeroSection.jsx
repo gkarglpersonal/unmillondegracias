@@ -1,5 +1,6 @@
 import { copy } from '../../content/copy.js';
 import ContributorCounter from './ContributorCounter.jsx';
+import HeroProgressBar from './HeroProgressBar.jsx';
 import RecentContributionsFeed from './RecentContributionsFeed.jsx';
 import HeartIcon from '../ui/HeartIcon.jsx';
 import styles from './HeroSection.module.css';
@@ -22,12 +23,15 @@ export default function HeroSection() {
 
         <p className={styles.subtitle}>{copy.hero.subtitle}</p>
 
+        <ContributorCounter />
+
+        <HeroProgressBar />
+
         <div className={styles.ctaRow}>
           <a href="#participar" className={`btn ${styles.heroBtn}`}>
             <HeartIcon className={styles.heartIcon} />
             {copy.hero.cta}
           </a>
-          <ContributorCounter />
         </div>
 
         <RecentContributionsFeed />

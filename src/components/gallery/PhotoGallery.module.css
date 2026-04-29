@@ -42,6 +42,7 @@
   cursor: zoom-in;
   overflow: hidden;
   transition: opacity var(--transition-base);
+  animation: galleryFadeIn 500ms var(--ease-out) both;
 }
 
 .tile:hover {
@@ -52,4 +53,29 @@
   width: 100%;
   height: auto;
   display: block;
+}
+
+.loadMoreWrap {
+  display: flex;
+  justify-content: center;
+  margin-top: var(--space-7);
+}
+
+.loadMoreBtn {
+  padding: var(--space-3) var(--space-6);
+}
+
+@keyframes galleryFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tile { animation: none; }
 }

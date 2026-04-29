@@ -1,40 +1,36 @@
-.counter {
-  display: inline-flex;
-  align-items: baseline;
-  gap: var(--space-2);
+.wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
   margin: 0;
-  color: var(--honey);
-  font-family: var(--font-body);
   animation: fadeIn 600ms var(--ease-out);
 }
 
 .number {
   font-family: var(--font-display);
-  font-size: 2.25rem;
+  font-size: clamp(48px, 7vw, 80px);
   font-weight: var(--fw-bold);
   line-height: 1;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
   color: var(--honey);
 }
 
-.text {
-  font-size: var(--fs-body);
-  color: var(--honey);
+.label {
+  font-family: var(--font-body);
+  font-size: var(--fs-body-sm);
   font-weight: var(--fw-medium);
-}
-
-@media (min-width: 768px) {
-  .number { font-size: 2.75rem; }
+  color: var(--text-muted);
+  letter-spacing: 0.01em;
 }
 
 /* ----- Estado vacío: invitación a ser el primero ----- */
-.empty {
-  /* hereda color honey del .counter */
-}
-
 .emptyText {
-  font-size: var(--fs-body-lg);
-  font-weight: var(--fw-medium);
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(28px, 4.2vw, 40px);
+  font-weight: var(--fw-semibold);
+  line-height: 1.15;
+  letter-spacing: -0.01em;
   color: var(--honey);
-  letter-spacing: -0.005em;
 }
