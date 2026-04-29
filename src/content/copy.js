@@ -20,10 +20,11 @@ export const copy = {
     title: 'La maestra que nunca perdió la ilusión del primer día.',
     eyebrow: 'Su trayectoria',
     past: [
-      'Hace más de cuarenta años, Mariángeles entró por primera vez al Colegio Everest School Monteclaro, en Pozuelo de Alarcón. Desde entonces, no ha parado.',
+      'Mariángeles llegó al Colegio Everest School Monteclaro en 1985. Desde entonces, no ha parado.',
       'Generación tras generación, ha sido la maestra de infantil que recibe a los niños cuando todavía son muy pequeños para entender lo que es un colegio, y les enseña — con paciencia, con alegría, con un amor que se nota desde el primer día — que este lugar es seguro, que aprender es divertido, y que hay alguien aquí que los quiere ver crecer.',
-      'Cuarenta años dan para mucho. Dan para miles de niños que hoy son adultos y que todavía recuerdan su nombre. Dan para cientos de familias que le confiaron lo más importante que tienen. Dan para proyectos, canciones, manualidades, abrazos y tardes preparando clases con la misma ilusión que el primer septiembre.',
-      'Lo más extraordinario de Mariángeles no es que lleve cuarenta años en el mismo colegio. Es que, a pocos meses de jubilarse, sigue pareciendo que está al inicio de su carrera.',
+      'Cuarenta años dan para mucho. Dan para miles de niños que hoy son adultos y que todavía recuerdan su nombre. Dan para cientos de familias que esperaban en la puerta de su clase para hablarle, para resolver dudas, para contarle cosas. Dan para festivales de Grease y de Alicia en el País de las Maravillas, para proyectos, canciones, abrazos y tardes preparando clases con la misma ilusión del primer septiembre.',
+      '“Es una maestra como pocos en este mundo”, dice Ivonne, su amiga y compañera en el cole durante 27 años. “Lucha mucho por sacar lo mejor de cada niño.”',
+      'Lo más extraordinario de Mariángeles no es que lleve cuarenta años en el mismo colegio. Es que, a pocos meses de jubilarse, sigue pareciendo que está al inicio de su carrera. Cariñosa, alegre, dinámica, positiva. Siempre con sus tacones, sus collares y sus pendientes. Siempre ella.',
     ],
     future: [
       'Ahora es su turno.',
@@ -34,15 +35,18 @@ export const copy = {
     eras: [
       {
         period: 'Los primeros años',
-        caption: 'Una vocación que apenas empezaba.',
+        caption: 'Los primeros años en el Everest, finales de los 80.',
+        photoUrl: '/images/Mariangeles_primeros.jpeg',
       },
       {
         period: 'Los años intermedios',
-        caption: 'Generación tras generación, siempre ella.',
+        caption: 'Con su amiga y compañera Ivonne. Madrid, mayo de 2004.',
+        photoUrl: '/images/Mariangeles_intermedios.jpeg',
       },
       {
         period: 'Los años recientes',
-        caption: 'Cuatro décadas después, la misma ilusión del primer día.',
+        caption: '',
+        photoUrl: null,
       },
     ],
   },
