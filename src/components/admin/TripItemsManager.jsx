@@ -18,6 +18,8 @@ import { CSS } from '@dnd-kit/utilities';
 import { GripVertical, Plus, Pencil, Trash2, Check, X } from 'lucide-react';
 import { useTripItems } from '../../hooks/useTripItems.js';
 import { useSections } from '../../hooks/useSections.js';
+import { useAuth } from '../../hooks/useAuth.jsx';
+import { auth } from '../../firebase/config.js';
 import {
   createTripItem,
   updateTripItem,
@@ -42,6 +44,7 @@ const blank = { name: '', description: '', targetAmount: '', order: 99, city: ''
 export default function TripItemsManager() {
   const { items } = useTripItems({ onlyActive: false });
   const { sections, loading: sectionsLoading } = useSections();
+  const { user } = useAuth();
 
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(blank);
@@ -55,29 +58,55 @@ export default function TripItemsManager() {
   const [activeDragId, setActiveDragId] = useState(null);
 
   const reportError = (label, err) => {
+    const u = auth.currentUser;
     console.error(`[admin partidas] ${label}:`, err);
-    setErrorMsg(`${label}: ${err?.code || err?.message || 'fallo desconocido'}`);
+    console.error('[admin partidas] auth state:', {
+      uid: u?.uid,
+      email: u?.email,
+      emailVerified: u?.emailVerified,
+    });
+    const code = err?.code || err?.message || 'fallo desconocido';
+    const who = u?.email
+      ? `email Firebase = ${u.email}`
+      : 'sin sesión Firebase';
+    setErrorMsg(`${label}: ${code} (${who})`);
   };
 
-  // Bootstrap: si la colección sections está vacía, sembrar con CITY_OPTIONS
+  // Antes de cualquier escritura, fuerza un refresh del token de auth
+  // para evitar timing en el que Firestore aún no ha visto la sesión.
+  const ensureFreshToken = async () => {
+    const u = auth.currentUser;
+    if (!u) throw new Error('No hay sesión Firebase activa');
+    await u.getIdToken(true);
+  };
+
+  // Bootstrap: si la colección sections está vacía, sembrar con CITY_OPTIONS.
+  // Espera a que `user` (de useAuth) esté listo y el token refrescado.
   const seededRef = useRef(false);
   useEffect(() => {
+    if (!user) return;
     if (sectionsLoading || seededRef.current) return;
     if (sections.length > 0) return;
     if (items.length === 0) return;
     seededRef.current = true;
-    Promise.all(CITY_OPTIONS.map((name, idx) => createSection({ name, order: idx + 1 }))).catch(
-      (err) => {
+    (async () => {
+      try {
+        await ensureFreshToken();
+        await Promise.all(
+          CITY_OPTIONS.map((name, idx) => createSection({ name, order: idx + 1 }))
+        );
+      } catch (err) {
         seededRef.current = false;
         reportError('Sembrar secciones automático', err);
       }
-    );
-  }, [sectionsLoading, sections.length, items.length]);
+    })();
+  }, [user, sectionsLoading, sections.length, items.length]);
 
   const seedSectionsManually = async () => {
     setErrorMsg(null);
     setBusy(true);
     try {
+      await ensureFreshToken();
       await Promise.all(
         CITY_OPTIONS.map((name, idx) => createSection({ name, order: idx + 1 }))
       );
