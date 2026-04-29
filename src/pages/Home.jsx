@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import Layout from '../components/layout/Layout.jsx';
 import FloatingCTA from '../components/layout/FloatingCTA.jsx';
 import HeroSection from '../components/hero/HeroSection.jsx';
@@ -42,9 +43,35 @@ export default function Home() {
             fontSize: 'var(--fs-caption)',
             paddingBlock: 'var(--space-6)',
             borderTop: '1px solid var(--border-soft)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 'var(--space-2)',
           }}
         >
-          Hecho con cariño · Por las familias y exalumnos que pasaron por su clase
+          <span>
+            Hecho con cariño · Por las familias y exalumnos que pasaron por su clase
+          </span>
+          <span
+            style={{
+              fontFamily: 'var(--font-body)',
+              fontSize: '12px',
+              color: 'var(--text-subtle)',
+            }}
+          >
+            © 2026 · Un millón de gracias · Homenaje privado a Mariángeles ·{' '}
+            <Link
+              to="/privacidad"
+              style={{
+                color: 'inherit',
+                textDecoration: 'none',
+                transition: 'color var(--transition-fast)',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--color-alpine-500)')}
+              onMouseLeave={(e) => (e.currentTarget.style.color = 'inherit')}
+            >
+              Privacidad
+            </Link>
+          </span>
         </footer>
       </Layout>
     </FormProvider>

@@ -1,5 +1,6 @@
 import { Routes, Route } from 'react-router-dom';
 import Home from './pages/Home.jsx';
+import Privacy from './pages/Privacy.jsx';
 import Admin from './pages/Admin.jsx';
 import AdminLogin from './pages/AdminLogin.jsx';
 import { AuthProvider } from './hooks/useAuth.jsx';
@@ -9,6 +10,7 @@ export default function App() {
     <AuthProvider>
       <Routes>
         <Route path="/" element={<Home />} />
+        <Route path="/privacidad" element={<Privacy />} />
         <Route path="/admin/login" element={<AdminLogin />} />
         <Route path="/admin/*" element={<Admin />} />
       </Routes>
