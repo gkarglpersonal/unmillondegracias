@@ -17,7 +17,20 @@ export const copy = {
   },
 
   history: {
-    title: 'Su trayectoria',
+    title: 'La maestra que nunca perdió la ilusión del primer día.',
+    eyebrow: 'Su trayectoria',
+    past: [
+      'Hace más de cuarenta años, Mariángeles entró por primera vez al Colegio Everest School Monteclaro, en Pozuelo de Alarcón. Desde entonces, no ha parado.',
+      'Generación tras generación, ha sido la maestra de infantil que recibe a los niños cuando todavía son muy pequeños para entender lo que es un colegio, y les enseña — con paciencia, con alegría, con un amor que se nota desde el primer día — que este lugar es seguro, que aprender es divertido, y que hay alguien aquí que los quiere ver crecer.',
+      'Cuarenta años dan para mucho. Dan para miles de niños que hoy son adultos y que todavía recuerdan su nombre. Dan para cientos de familias que le confiaron lo más importante que tienen. Dan para proyectos, canciones, manualidades, abrazos y tardes preparando clases con la misma ilusión que el primer septiembre.',
+      'Lo más extraordinario de Mariángeles no es que lleve cuarenta años en el mismo colegio. Es que, a pocos meses de jubilarse, sigue pareciendo que está al inicio de su carrera.',
+    ],
+    future: [
+      'Ahora es su turno.',
+      'Este verano, Mariángeles cierra un capítulo que ha durado toda una vida profesional. Y nosotros — familias, exalumnos, compañeras — queremos estar ahí para abrir el siguiente.',
+      'Este viaje a Argentina es nuestro gracias colectivo. Un regalo de tiempo, de libertad y de aventura para alguien que ha dedicado cada día de su vida profesional a los demás.',
+      'Ahora le toca a ella descubrir, explorar y disfrutar. Y nosotros queremos ser parte de ese momento.',
+    ],
     eras: [
       {
         period: 'Los primeros años',
