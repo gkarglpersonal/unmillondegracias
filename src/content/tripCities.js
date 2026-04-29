@@ -115,7 +115,5 @@ export const timelineSequence = [
 
 /** Tarjetas de cierre, fuera de la línea de tiempo. */
 export const closingItemIds = [
-  'tripItem-27', // Recuerdos para traer a casa
-  'tripItem-28', // Imprevistos y momentos espontáneos
   'tripItem-29', // Seguro de viaje para todo el recorrido
 ];
