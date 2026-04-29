@@ -36,6 +36,7 @@ export default function Home() {
         <PhotoGallery />
 
         <footer
+          id="site-footer"
           className="section"
           style={{
             textAlign: 'center',

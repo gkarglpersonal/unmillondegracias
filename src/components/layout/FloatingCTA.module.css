@@ -33,6 +33,13 @@
   transform: scale(0.97);
 }
 
+/* Cuando el footer entra en el viewport, el botón se ancla al documento
+ * justo encima del footer en vez de seguir flotando sobre él. */
+.fabAbsolute {
+  position: absolute;
+  bottom: auto;
+}
+
 .icon {
   flex-shrink: 0;
   color: var(--color-honey-300);
