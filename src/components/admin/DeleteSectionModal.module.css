@@ -1,0 +1,79 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 20, 22, 0.55);
+  z-index: var(--z-modal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+}
+
+.sheet {
+  background: var(--color-white);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  width: 100%;
+  max-width: 480px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  box-shadow: var(--shadow-medium);
+}
+
+.title {
+  font-family: var(--font-display);
+  font-size: var(--fs-h3);
+  font-weight: var(--fw-semibold);
+  letter-spacing: -0.01em;
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.body {
+  margin: 0;
+  font-size: var(--fs-body);
+  color: var(--text-body);
+  line-height: var(--lh-relaxed);
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.actions button {
+  font-family: var(--font-body);
+  font-weight: var(--fw-semibold);
+  font-size: var(--fs-body-sm);
+  padding: var(--space-3) var(--space-5);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.btnDanger {
+  background: var(--color-error);
+  color: var(--color-white);
+  border-color: var(--color-error);
+}
+.btnDanger:hover { background: #95483a; border-color: #95483a; }
+
+.btnNeutral {
+  background: var(--color-alpine-50);
+  color: var(--color-alpine-600);
+  border-color: var(--color-alpine-100);
+}
+.btnNeutral:hover { background: var(--color-alpine-100); }
+
+.btnCancel {
+  background: transparent;
+  color: var(--text-muted);
+  border-color: var(--border-default);
+}
+.btnCancel:hover { background: rgba(28, 28, 30, 0.04); }
+
+.actions button:disabled { opacity: 0.55; cursor: not-allowed; }
