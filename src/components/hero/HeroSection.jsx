@@ -7,10 +7,12 @@ import styles from './HeroSection.module.css';
 export default function HeroSection() {
   return (
     <header className={styles.hero}>
-      <div className={styles.portraitWrap} aria-hidden="true">
-        <div className={styles.portraitPlaceholder}>
-          <span className={styles.portraitLabel}>Foto de Mariángeles</span>
-        </div>
+      <div className={styles.portraitWrap}>
+        <img
+          src="/mariangeles-placeholder.png"
+          alt="Mariángeles"
+          className={styles.portraitImg}
+        />
       </div>
 
       <div className={styles.content}>

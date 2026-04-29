@@ -7,7 +7,7 @@ export const copy = {
     eyebrow: 'Un millón de gracias',
     title: '40 años. Miles de niños. Una maestra que lo ha dado todo.',
     subtitle:
-      'Mariángeles ha dedicado más de cuatro décadas a su vocación con ánimo, ilusión y una entrega que ha marcado a generaciones. Es nuestro turno de devolverle aunque sea una pequeña parte de todo lo que nos ha dado.',
+      'Más de cuatro décadas dedicando cada día a sus alumnos con la misma ilusión del primero. Maestra de infantil en el Colegio Everest de Monteclaro, Mariángeles ha marcado a generaciones de niños y sus familias. Este viaje es nuestro gracias colectivo.',
     contributorCounter: (n) => {
       if (!n || n <= 0) return 'Sé el primero en sumarte.';
       if (n === 1) return '1 persona se ha sumado.';
