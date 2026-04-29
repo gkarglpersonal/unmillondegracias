@@ -57,8 +57,17 @@
   max-width: 60ch;
 }
 
+/* Mostrar/ocultar entre desktop y móvil */
+.desktopOnly { display: block; }
+.mobileOnly { display: none; }
+
+@media (max-width: 767px) {
+  .desktopOnly { display: none; }
+  .mobileOnly { display: block; }
+}
+
 /* ================================================================
- * Timeline: línea vertical + ciudades + banners de vuelo
+ * Timeline desktop: línea vertical + ciudades + banners de vuelo
  * ================================================================ */
 .timeline {
   position: relative;
@@ -68,7 +77,6 @@
   gap: var(--space-7);
 }
 
-/* Línea vertical fina, recorre toda la timeline */
 .timeline::before {
   content: '';
   position: absolute;
@@ -80,21 +88,6 @@
   border-radius: 1px;
 }
 
-/* Mobile: sin línea ni padding lateral, todo en columna */
-@media (max-width: 767px) {
-  .timeline {
-    padding-left: 0;
-    gap: var(--space-6);
-  }
-  .timeline::before {
-    display: none;
-  }
-}
-
-/* ----- Tarjeta de vuelo solitaria (separador entre ciudades) -----
- * Usa un grid invisible con las MISMAS columnas que el grid de la ciudad,
- * y coloca la tarjeta en la columna 1 para alinearla con la primera
- * tarjeta de las ciudades vecinas. Mantiene gap idéntico. */
 .flightSolo {
   display: grid;
   grid-template-columns: 1fr;
@@ -118,8 +111,7 @@
 }
 
 /* ================================================================
- * Sección de cierre "Para completar el viaje"
- * Fuera del timeline, sin línea vertical, grid centrado
+ * Sección de cierre desktop
  * ================================================================ */
 .closing {
   margin-top: var(--space-10);
@@ -154,4 +146,103 @@
   .closingGrid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
+}
+
+/* ================================================================
+ * Carrusel móvil
+ * ================================================================ */
+.carousel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.carouselTrack {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  gap: 0;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  /* Romper padding lateral del .section para llegar a borde de pantalla */
+  margin-inline: calc(-1 * var(--section-pad-x));
+  padding-inline: var(--section-pad-x);
+}
+
+.carouselTrack::-webkit-scrollbar { display: none; }
+
+.carouselSlide {
+  flex: 0 0 100%;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  padding-right: var(--space-4);
+  box-sizing: border-box;
+}
+
+.slideFlights {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.slideCityHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border-soft);
+}
+
+.slideCityName {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: var(--fw-semibold);
+  letter-spacing: -0.015em;
+  line-height: 1.2;
+  color: var(--honey);
+  margin: 0;
+}
+
+.slideCityMeta {
+  font-family: var(--font-body);
+  font-size: var(--fs-body-sm);
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.slideCards {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.dots {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  padding: var(--space-2) 0 0;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgba(61, 82, 51, 0.18);
+  cursor: pointer;
+  transition: background var(--transition-fast), transform var(--transition-fast);
+}
+
+.dot:hover { background: rgba(61, 82, 51, 0.32); }
+
+.dotActive {
+  background: var(--color-alpine-500);
+  transform: scale(1.2);
 }

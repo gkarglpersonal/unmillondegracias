@@ -18,12 +18,13 @@ export default function HistorySection() {
 
       <div className={styles.timeline}>
         {copy.history.eras.map((era, idx) => (
-          <TimelineItem
-            key={era.period}
-            index={idx}
-            period={era.period}
-            caption={era.caption}
-          />
+          <div className={styles.timelineSlide} key={era.period}>
+            <TimelineItem
+              index={idx}
+              period={era.period}
+              caption={era.caption}
+            />
+          </div>
         ))}
       </div>
 

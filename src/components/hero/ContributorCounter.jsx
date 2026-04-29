@@ -4,12 +4,10 @@ import { formatNumber } from '../../utils/formatCurrency.js';
 import styles from './ContributorCounter.module.css';
 
 /**
- * Contador de contribuidores. Siempre visible:
- *  - Si nadie se ha sumado todavía → invitación "Sé el primero en sumarte."
- *  - Si hay 1+ contribuidores → número grande en honey + texto descriptivo.
- *
- * Mientras carga datos por primera vez, el hook tiene un timeout de 2 s
- * para evitar bloquear el render.
+ * Contador de contribuidores en el hero. Diseño protagonista:
+ *  - Número grande en Fraunces honey
+ *  - Línea descriptiva debajo en Inter
+ *  - Si nadie se ha sumado, muestra invitación destacada
  */
 export default function ContributorCounter() {
   const { config, loading } = useConfig();
@@ -19,19 +17,18 @@ export default function ContributorCounter() {
 
   if (count === 0) {
     return (
-      <p className={`${styles.counter} ${styles.empty}`} aria-live="polite">
-        <span className={styles.emptyText}>{copy.hero.contributorCounter(0)}</span>
-      </p>
+      <div className={styles.wrap} aria-live="polite">
+        <p className={styles.emptyText}>{copy.hero.contributorCounter(0)}</p>
+      </div>
     );
   }
 
-  const fullText = copy.hero.contributorCounter(count);
-  const textWithoutLeadingNumber = fullText.replace(/^\d+\s*/, '');
-
   return (
-    <p className={styles.counter} aria-live="polite">
+    <div className={styles.wrap} aria-live="polite">
       <span className={styles.number}>{formatNumber(count)}</span>
-      <span className={styles.text}>{textWithoutLeadingNumber}</span>
-    </p>
+      <span className={styles.label}>
+        {count === 1 ? 'persona ya se ha sumado' : 'personas ya se han sumado'}
+      </span>
+    </div>
   );
 }
