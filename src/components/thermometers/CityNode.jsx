@@ -8,8 +8,13 @@ import styles from './CityNode.module.css';
  * bloque visual y muestra solo header + grid.
  */
 export default function CityNode({ name, nights, days, showMeta = true, children }) {
-  const nochesLabel = nights === 1 ? 'noche' : 'noches';
-  const meta = showMeta ? `${nights} ${nochesLabel} · ${days}` : days;
+  let meta = null;
+  if (showMeta && nights != null && days) {
+    const nochesLabel = nights === 1 ? 'noche' : 'noches';
+    meta = `${nights} ${nochesLabel} · ${days}`;
+  } else if (days) {
+    meta = days;
+  }
   const image = CITY_IMAGES[name];
 
   return (

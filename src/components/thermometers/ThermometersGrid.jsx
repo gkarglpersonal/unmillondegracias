@@ -2,59 +2,54 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useTripItems } from '../../hooks/useTripItems.js';
 import { useConfig } from '../../hooks/useConfig.js';
+import { useSections } from '../../hooks/useSections.js';
 import { percent } from '../../utils/formatCurrency.js';
-import {
-  timelineSequence,
-  closingItemIds,
-  CITY_OPTIONS,
-  resolveItemCity,
-} from '../../content/tripCities.js';
+import { CITY_OPTIONS } from '../../content/tripCities.js';
 import { MOBILE_COLLAGE } from '../../content/cityImages.js';
 import TripItemCard from './TripItemCard.jsx';
 import CityNode from './CityNode.jsx';
 import styles from './ThermometersGrid.module.css';
 
 /**
- * Agrupa las partidas por ciudad para el carrusel móvil.
- * - Sigue el orden de CITY_OPTIONS (Buenos Aires, Ushuaia, ...).
- * - Dentro de cada ciudad: vuelos primero (por order), luego el resto
- *   (por order). Esto garantiza que el vuelo de llegada sea la primera
- *   tarjeta del slide, sin duplicados entre slides.
+ * Construye los grupos por sección leyendo el orden y nombres de la
+ * colección `sections` de Firestore. Mientras esa colección esté vacía
+ * (estado inicial del proyecto), cae a `CITY_OPTIONS` como fallback para
+ * que la página nunca se quede sin contenido.
  */
-function buildCitySlides(items) {
-  const byCity = {};
-  for (const city of CITY_OPTIONS) byCity[city] = [];
-  for (const it of items) {
-    const city = resolveItemCity(it);
-    if (city && byCity[city]) byCity[city].push(it);
-  }
+function buildSectionGroups(items, sections) {
   const sortByOrder = (a, b) => (a.order || 99) - (b.order || 99);
-  return CITY_OPTIONS.map((city) => {
-    const list = byCity[city];
-    const flights = list.filter((it) => it.category === 'flight').sort(sortByOrder);
-    const others = list.filter((it) => it.category !== 'flight').sort(sortByOrder);
-    return { city, items: [...flights, ...others] };
-  }).filter((slide) => slide.items.length > 0);
+  const orderedNames =
+    sections && sections.length > 0
+      ? sections.map((s) => s.name)
+      : [...CITY_OPTIONS];
+
+  const byName = {};
+  for (const name of orderedNames) byName[name] = [];
+  const known = new Set(orderedNames);
+  for (const it of items) {
+    if (it.city && known.has(it.city)) byName[it.city].push(it);
+  }
+
+  return orderedNames
+    .map((name) => {
+      const list = byName[name];
+      const flights = list.filter((it) => it.category === 'flight').sort(sortByOrder);
+      const others = list.filter((it) => it.category !== 'flight').sort(sortByOrder);
+      return { name, items: [...flights, ...others] };
+    })
+    .filter((group) => group.items.length > 0);
 }
 
 export default function ThermometersGrid() {
   const { items, loading } = useTripItems();
   const { config } = useConfig();
-
-  const itemsById = useMemo(() => {
-    const map = {};
-    items.forEach((it) => {
-      map[it.id] = it;
-    });
-    return map;
-  }, [items]);
+  const { sections } = useSections();
 
   const totalRaised = config?.totalRaised ?? 0;
   const totalCost = config?.totalTripCost ?? 10500;
   const tripPct = percent(totalRaised, totalCost);
 
-  const closingItems = closingItemIds.map((id) => itemsById[id]).filter(Boolean);
-  const mobileSlides = useMemo(() => buildCitySlides(items), [items]);
+  const groups = useMemo(() => buildSectionGroups(items, sections), [items, sections]);
 
   return (
     <section className={`${styles.section} section`} id="participar">
@@ -73,7 +68,7 @@ export default function ThermometersGrid() {
 
       {loading && items.length === 0 ? (
         <p className={styles.empty}>Cargando experiencias…</p>
-      ) : items.length === 0 ? (
+      ) : groups.length === 0 ? (
         <p className={styles.empty}>
           Las experiencias aparecerán aquí en cuanto PANGEA The Travel Store
           cierre la lista definitiva del viaje.
@@ -83,47 +78,14 @@ export default function ThermometersGrid() {
           {/* Desktop / tablet: timeline vertical */}
           <div className={styles.desktopOnly}>
             <div className={styles.timeline}>
-              {timelineSequence.map((entry) => {
-                if (entry.type === 'flight') {
-                  const item = itemsById[entry.itemId];
-                  if (!item) return null;
-                  return (
-                    <div
-                      key={`flight-${entry.itemId}`}
-                      className={styles.flightSolo}
-                    >
-                      <TripItemCard item={item} />
-                    </div>
-                  );
-                }
-                const cityCards = entry.itemIds
-                  .map((id) => itemsById[id])
-                  .filter(Boolean);
-                return (
-                  <CityNode
-                    key={entry.id}
-                    name={entry.name}
-                    nights={entry.nights}
-                    days={entry.days}
-                  >
-                    {cityCards.map((it) => (
-                      <TripItemCard key={it.id} item={it} />
-                    ))}
-                  </CityNode>
-                );
-              })}
-            </div>
-
-            {closingItems.length > 0 && (
-              <section className={styles.closing}>
-                <h3 className={styles.closingTitle}>Para completar el viaje</h3>
-                <div className={styles.closingGrid}>
-                  {closingItems.map((it) => (
+              {groups.map((group) => (
+                <CityNode key={group.name} name={group.name}>
+                  {group.items.map((it) => (
                     <TripItemCard key={it.id} item={it} />
                   ))}
-                </div>
-              </section>
-            )}
+                </CityNode>
+              ))}
+            </div>
           </div>
 
           {/* Mobile: collage inspiracional + carrusel horizontal con scroll snap */}
@@ -139,7 +101,7 @@ export default function ThermometersGrid() {
                 />
               ))}
             </div>
-            <MobileCarousel slides={mobileSlides} />
+            <MobileCarousel slides={groups} />
           </div>
         </>
       )}
@@ -201,7 +163,7 @@ function MobileCarousel({ slides }) {
         {slides.map((slide, idx) => (
           <div className={styles.carouselSlide} key={`slide-${idx}`}>
             <header className={styles.slideCityHeader}>
-              <h3 className={styles.slideCityName}>{slide.city}</h3>
+              <h3 className={styles.slideCityName}>{slide.name}</h3>
             </header>
 
             <div className={styles.slideCards}>
