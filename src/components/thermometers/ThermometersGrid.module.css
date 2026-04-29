@@ -154,49 +154,80 @@
 .carousel {
   display: flex;
   flex-direction: column;
-  gap: var(--space-5);
+  gap: var(--space-4);
 }
 
+/* Flechas de navegación encima del carrusel */
+.carouselNav {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-right: 4px;
+}
+
+.navBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--color-alpine-50);
+  color: var(--color-alpine-600);
+  border: 1px solid var(--color-alpine-100);
+  cursor: pointer;
+  transition: opacity 200ms var(--ease-out), transform 200ms var(--ease-out), background 200ms var(--ease-out);
+}
+
+.navBtn:hover {
+  background: var(--color-alpine-100);
+  transform: scale(1.05);
+}
+
+.navBtn:active { transform: scale(0.95); }
+
+.navBtnHidden {
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+}
+
+/* Contenedor scroll: rompe el padding del section para llegar a los bordes
+ * y luego añade su propio padding de 16px. La última tarjeta de cada slide
+ * deja peek hacia la siguiente porque cada slide es un poco más estrecho
+ * que el contenedor visible. */
 .carouselTrack {
   display: flex;
   flex-direction: row;
   flex-wrap: nowrap;
-  gap: 0;
+  gap: 12px;
   overflow-x: auto;
   scroll-snap-type: x mandatory;
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
-  /* Romper padding lateral del .section para llegar a borde de pantalla */
   margin-inline: calc(-1 * var(--section-pad-x));
-  padding-inline: var(--section-pad-x);
+  padding-left: 16px;
+  padding-right: 16px;
+  scroll-padding-left: 16px;
 }
 
 .carouselTrack::-webkit-scrollbar { display: none; }
 
 .carouselSlide {
-  flex: 0 0 100%;
+  flex: 0 0 calc(100vw - 48px);
   scroll-snap-align: start;
   scroll-snap-stop: always;
   display: flex;
   flex-direction: column;
-  gap: var(--space-5);
-  padding-right: var(--space-4);
-  box-sizing: border-box;
-}
-
-.slideFlights {
-  display: flex;
-  flex-direction: column;
   gap: var(--space-4);
+  box-sizing: border-box;
 }
 
 .slideCityHeader {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding-top: var(--space-3);
-  border-top: 1px solid var(--border-soft);
 }
 
 .slideCityName {
@@ -206,13 +237,6 @@
   letter-spacing: -0.015em;
   line-height: 1.2;
   color: var(--honey);
-  margin: 0;
-}
-
-.slideCityMeta {
-  font-family: var(--font-body);
-  font-size: var(--fs-body-sm);
-  color: var(--text-muted);
   margin: 0;
 }
 

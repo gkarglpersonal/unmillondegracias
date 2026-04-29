@@ -2,9 +2,10 @@ import { useState } from 'react';
 import { useTripItems } from '../../hooks/useTripItems.js';
 import { createTripItem, updateTripItem, deleteTripItem } from '../../firebase/tripItems.js';
 import { formatCurrency, percent } from '../../utils/formatCurrency.js';
+import { CITY_OPTIONS } from '../../content/tripCities.js';
 import styles from './TripItemsManager.module.css';
 
-const blank = { name: '', description: '', targetAmount: '', order: 99 };
+const blank = { name: '', description: '', targetAmount: '', order: 99, city: '' };
 
 export default function TripItemsManager() {
   const { items, loading } = useTripItems({ onlyActive: false });
@@ -12,7 +13,10 @@ export default function TripItemsManager() {
   const [form, setForm] = useState(blank);
   const [busy, setBusy] = useState(false);
 
-  const startNew = () => { setEditing('new'); setForm({ ...blank, order: items.length + 1 }); };
+  const startNew = () => {
+    setEditing('new');
+    setForm({ ...blank, order: items.length + 1 });
+  };
   const startEdit = (it) => {
     setEditing(it.id);
     setForm({
@@ -20,9 +24,13 @@ export default function TripItemsManager() {
       description: it.description,
       targetAmount: String(it.targetAmount),
       order: it.order,
+      city: it.city || '',
     });
   };
-  const cancel = () => { setEditing(null); setForm(blank); };
+  const cancel = () => {
+    setEditing(null);
+    setForm(blank);
+  };
 
   const save = async () => {
     if (!form.name.trim() || !form.targetAmount) return;
@@ -31,24 +39,35 @@ export default function TripItemsManager() {
       description: form.description.trim(),
       targetAmount: Number(form.targetAmount),
       order: Number(form.order) || 99,
+      city: form.city || null,
     };
     setBusy(true);
     try {
       if (editing === 'new') await createTripItem(data);
       else await updateTripItem(editing, data);
       cancel();
-    } finally { setBusy(false); }
+    } finally {
+      setBusy(false);
+    }
   };
 
   const handleDelete = async (id, name) => {
     if (!confirm(`¿Borrar la partida "${name}"? Esta acción no se puede deshacer.`)) return;
     setBusy(true);
-    try { await deleteTripItem(id); } finally { setBusy(false); }
+    try {
+      await deleteTripItem(id);
+    } finally {
+      setBusy(false);
+    }
   };
 
   const handleToggleActive = async (it) => {
     setBusy(true);
-    try { await updateTripItem(it.id, { active: !it.active }); } finally { setBusy(false); }
+    try {
+      await updateTripItem(it.id, { active: !it.active });
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
@@ -65,7 +84,10 @@ export default function TripItemsManager() {
       {editing && (
         <form
           className={styles.form}
-          onSubmit={(e) => { e.preventDefault(); save(); }}
+          onSubmit={(e) => {
+            e.preventDefault();
+            save();
+          }}
         >
           <h3 className={styles.formTitle}>
             {editing === 'new' ? 'Nueva partida' : 'Editar partida'}
@@ -86,6 +108,18 @@ export default function TripItemsManager() {
               value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
             />
+          </label>
+          <label className={styles.field}>
+            <span className={styles.label}>Ciudad / Sección</span>
+            <select
+              value={form.city}
+              onChange={(e) => setForm({ ...form, city: e.target.value })}
+            >
+              <option value="">— Sin asignar —</option>
+              {CITY_OPTIONS.map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
           </label>
           <div className={styles.row2}>
             <label className={styles.field}>
@@ -131,6 +165,7 @@ export default function TripItemsManager() {
                 <div className={styles.rowHead}>
                   <span className={styles.order}>#{it.order}</span>
                   <h4 className={styles.name}>{it.name}</h4>
+                  {it.city && <span className={styles.cityBadge}>{it.city}</span>}
                   {!it.active && <span className={styles.inactiveBadge}>Inactiva</span>}
                 </div>
                 <p className={styles.description}>{it.description}</p>

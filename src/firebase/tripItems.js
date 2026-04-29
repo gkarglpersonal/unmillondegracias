@@ -50,6 +50,7 @@ export async function createTripItem(data) {
     raisedAmount: 0,
     contributorCount: 0,
     order: Number(data.order || 99),
+    city: data.city || null,
     active: true,
     createdAt: serverTimestamp(),
   });
