@@ -232,22 +232,6 @@ export const seedTripItems = [
     order: 26,
   },
   {
-    name: 'Recuerdos para traer a casa',
-    description:
-      'Un mate de plata labrado, un pañuelo de alpaca patagónica. Algo pequeño que dura toda una vida.',
-    targetAmount: 150,
-    category: 'gift',
-    order: 27,
-  },
-  {
-    name: 'Imprevistos y momentos espontáneos',
-    description:
-      'El taxi nocturno, la excursión de última hora, el helado junto al lago. Para que nada se quede sin vivir.',
-    targetAmount: 1130,
-    category: 'gift',
-    order: 28,
-  },
-  {
     name: 'Seguro de viaje para todo el recorrido',
     description:
       'Para que viajar tranquila también sea parte del regalo. 16 días, dos personas, sin preocupaciones.',
