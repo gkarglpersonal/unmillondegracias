@@ -1,8 +1,6 @@
 import { useState } from 'react';
 import { useTripItems } from '../../hooks/useTripItems.js';
 import { createManualContribution } from '../../firebase/contributions.js';
-import { increment, doc, updateDoc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '../../firebase/config.js';
 import styles from './ManualContributionForm.module.css';
 
 const blankForm = {
@@ -18,8 +16,9 @@ const blankForm = {
  * Aportación manual: para cuando alguien le notifica a Gerry por otro canal
  * (WhatsApp, transferencia directa, etc.) y hay que registrarlo a mano.
  *
- * Si se marca como "paid" directamente, el termómetro se incrementa al
- * crear el documento (replicamos la lógica de markContributionPaid).
+ * El registro y la actualización de contadores ocurren dentro de la misma
+ * transacción de Firestore (`createManualContribution`), así que el
+ * termómetro nunca queda descuadrado a mitad de la operación.
  */
 export default function ManualContributionForm() {
   const { items: tripItems } = useTripItems({ onlyActive: false });
@@ -38,7 +37,7 @@ export default function ManualContributionForm() {
       const amount = form.amount ? Number(form.amount) : null;
       const message = form.message.trim() || null;
 
-      const id = await createManualContribution({
+      const { contributionId } = await createManualContribution({
         name: form.name.trim(),
         email: form.email.trim() || null,
         message,
@@ -47,30 +46,17 @@ export default function ManualContributionForm() {
         paymentStatus: form.status,
       });
 
-      // Si está marcada como pagada con monto > 0, actualizar termómetro
-      // y contadores globales (replicando markContributionPaid).
-      if (form.status === 'paid' && amount && amount > 0 && tripItemId) {
-        await updateDoc(doc(db, 'tripItems', tripItemId), {
-          raisedAmount: increment(amount),
-          contributorCount: increment(1),
-        });
-      }
-      if (form.status === 'paid') {
-        await setDoc(
-          doc(db, 'config', 'general'),
-          {
-            totalRaised: amount && amount > 0 ? increment(amount) : increment(0),
-            totalContributors: increment(1),
-          },
-          { merge: true }
-        );
-      }
-
-      setFeedback({ type: 'success', text: `Aportación de ${form.name} registrada (#${id.slice(0, 6)}).` });
+      setFeedback({
+        type: 'success',
+        text: `Aportación de ${form.name} registrada (#${contributionId.slice(0, 6)}).`,
+      });
       setForm(blankForm);
     } catch (err) {
       console.error(err);
-      setFeedback({ type: 'error', text: 'No se pudo guardar. Revisa la consola.' });
+      setFeedback({
+        type: 'error',
+        text: 'No se pudo guardar la aportación. Vuelve a intentarlo en un momento.',
+      });
     } finally {
       setBusy(false);
     }

@@ -5,6 +5,7 @@ import {
   markContributionPaid,
   unmarkContributionPaid,
   deleteContribution,
+  updateContributionAmount,
 } from '../../firebase/contributions.js';
 import { useTripItems } from '../../hooks/useTripItems.js';
 import { formatCurrency } from '../../utils/formatCurrency.js';
@@ -22,6 +23,9 @@ export default function ContributionsList() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('pending');
   const [busyId, setBusyId] = useState(null);
+  const [editingId, setEditingId] = useState(null);
+  const [editValue, setEditValue] = useState('');
+  const [editError, setEditError] = useState(null);
   const { items: tripItems } = useTripItems({ onlyActive: false });
 
   useEffect(() => {
@@ -54,10 +58,92 @@ export default function ContributionsList() {
     try { await unmarkContributionPaid(id); } finally { setBusyId(null); }
   };
 
-  const handleDelete = async (id) => {
-    if (!confirm('¿Borrar esta aportación? Esta acción no se puede deshacer.')) return;
-    setBusyId(id);
-    try { await deleteContribution(id); } finally { setBusyId(null); }
+  /**
+   * Borrado con confirmación reforzada para pagadas: enuncia consecuencias
+   * y exige una segunda confirmación con el importe en el texto.
+   */
+  const handleDelete = async (c) => {
+    const isPaid = c.paymentStatus === 'paid';
+    const amountText = c.amount && c.amount > 0 ? formatCurrency(c.amount) : 'sin importe';
+
+    let confirmText;
+    if (isPaid) {
+      confirmText = `Vas a eliminar esta aportación de ${amountText}. Se descontará del termómetro y se eliminarán también el mensaje del muro y la foto si la había. Esta acción no se puede deshacer.\n\n¿Continuar?`;
+    } else {
+      confirmText = `Vas a eliminar esta aportación pendiente. Se eliminarán también el mensaje del muro y la foto si la había. Esta acción no se puede deshacer.\n\n¿Continuar?`;
+    }
+
+    if (!confirm(confirmText)) return;
+
+    // Doble confirmación cuando ya estaba contada en el termómetro.
+    if (isPaid) {
+      const reinforced = confirm(
+        `Confirmación final: vas a restar ${amountText} del termómetro y reducir el contador de donantes. ¿Seguro?`
+      );
+      if (!reinforced) return;
+    }
+
+    setBusyId(c.id);
+    try {
+      await deleteContribution(c.id);
+    } catch (err) {
+      console.error(err);
+      alert('No se pudo borrar la aportación. Inténtalo de nuevo.');
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const startEdit = (c) => {
+    setEditingId(c.id);
+    setEditValue(c.amount && c.amount > 0 ? String(c.amount) : '');
+    setEditError(null);
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditValue('');
+    setEditError(null);
+  };
+
+  const saveEdit = async (c) => {
+    setEditError(null);
+    const trimmed = editValue.trim();
+    const newAmount = trimmed === '' ? 0 : Number(trimmed);
+    if (!Number.isFinite(newAmount) || newAmount < 0) {
+      setEditError('Importe inválido. Rellena un número igual o mayor que 0.');
+      return;
+    }
+
+    const oldAmount = c.amount && c.amount > 0 ? Number(c.amount) : 0;
+    if (newAmount === oldAmount) {
+      cancelEdit();
+      return;
+    }
+
+    const delta = newAmount - oldAmount;
+    const isPaid = c.paymentStatus === 'paid';
+    const sign = delta > 0 ? '+' : '−';
+    const absDelta = Math.abs(delta);
+
+    let confirmText;
+    if (isPaid) {
+      confirmText = `Importe nuevo: ${formatCurrency(newAmount)} (antes ${formatCurrency(oldAmount)}). Se ${delta > 0 ? 'sumará' : 'descontará'} ${sign}${formatCurrency(absDelta)} al termómetro. ¿Confirmas?`;
+    } else {
+      confirmText = `Importe nuevo: ${formatCurrency(newAmount)} (antes ${formatCurrency(oldAmount)}). Como la aportación está pendiente, el termómetro no se toca todavía. ¿Confirmas?`;
+    }
+    if (!confirm(confirmText)) return;
+
+    setBusyId(c.id);
+    try {
+      await updateContributionAmount(c.id, newAmount);
+      cancelEdit();
+    } catch (err) {
+      console.error(err);
+      setEditError('No se pudo actualizar el importe. Inténtalo de nuevo.');
+    } finally {
+      setBusyId(null);
+    }
   };
 
   return (
@@ -113,51 +199,97 @@ export default function ContributionsList() {
                 )}
               </div>
               <div className={styles.rowSide}>
-                <div className={styles.amountRow}>
-                  {c.amountPrivate && c.amount > 0 && (
-                    <span
-                      className={styles.privateIcon}
-                      title="Privado: el donante prefiere que Mariángeles no vea el importe"
-                      aria-label="Importe privado: oculto para Mariángeles"
-                    >
-                      <Lock size={14} aria-hidden="true" />
-                    </span>
-                  )}
-                  <span className={styles.amount}>
-                    {c.amount ? formatCurrency(c.amount) : '—'}
-                  </span>
-                </div>
-                <div className={styles.actions}>
-                  {c.paymentStatus === 'pending' && c.amount > 0 && (
-                    <button
-                      type="button"
-                      className="btn"
-                      disabled={busyId === c.id}
-                      onClick={() => handleMarkPaid(c.id)}
-                    >
-                      Marcar pagada
-                    </button>
-                  )}
-                  {c.paymentStatus === 'paid' && (
-                    <button
-                      type="button"
-                      className="btn-secondary"
-                      disabled={busyId === c.id}
-                      onClick={() => handleUnmarkPaid(c.id)}
-                    >
-                      Revertir
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    className={styles.deleteBtn}
-                    disabled={busyId === c.id}
-                    onClick={() => handleDelete(c.id)}
-                    aria-label="Borrar aportación"
-                  >
-                    Borrar
-                  </button>
-                </div>
+                {editingId === c.id ? (
+                  <div className={styles.editBox}>
+                    <label className={styles.editLabel}>
+                      Nuevo importe (€)
+                      <input
+                        type="number"
+                        min="0"
+                        step="1"
+                        className={styles.editInput}
+                        value={editValue}
+                        onChange={(e) => setEditValue(e.target.value)}
+                        autoFocus
+                      />
+                    </label>
+                    {editError && <p className={styles.editError}>{editError}</p>}
+                    <div className={styles.editActions}>
+                      <button
+                        type="button"
+                        className="btn"
+                        disabled={busyId === c.id}
+                        onClick={() => saveEdit(c)}
+                      >
+                        Guardar
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-secondary"
+                        disabled={busyId === c.id}
+                        onClick={cancelEdit}
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <div className={styles.amountRow}>
+                      {c.amountPrivate && c.amount > 0 && (
+                        <span
+                          className={styles.privateIcon}
+                          title="Privado: el donante prefiere que Mariángeles no vea el importe"
+                          aria-label="Importe privado: oculto para Mariángeles"
+                        >
+                          <Lock size={14} aria-hidden="true" />
+                        </span>
+                      )}
+                      <span className={styles.amount}>
+                        {c.amount ? formatCurrency(c.amount) : '—'}
+                      </span>
+                    </div>
+                    <div className={styles.actions}>
+                      {c.paymentStatus === 'pending' && c.amount > 0 && (
+                        <button
+                          type="button"
+                          className="btn"
+                          disabled={busyId === c.id}
+                          onClick={() => handleMarkPaid(c.id)}
+                        >
+                          Marcar pagada
+                        </button>
+                      )}
+                      {c.paymentStatus === 'paid' && (
+                        <button
+                          type="button"
+                          className="btn-secondary"
+                          disabled={busyId === c.id}
+                          onClick={() => handleUnmarkPaid(c.id)}
+                        >
+                          Revertir
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        className={styles.editBtn}
+                        disabled={busyId === c.id}
+                        onClick={() => startEdit(c)}
+                      >
+                        Editar importe
+                      </button>
+                      <button
+                        type="button"
+                        className={styles.deleteBtn}
+                        disabled={busyId === c.id}
+                        onClick={() => handleDelete(c)}
+                        aria-label="Borrar aportación"
+                      >
+                        Borrar
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
             </li>
           ))}
