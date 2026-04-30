@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Lock } from 'lucide-react';
 import {
   subscribeAdminContributions,
   markContributionPaid,
@@ -112,9 +113,20 @@ export default function ContributionsList() {
                 )}
               </div>
               <div className={styles.rowSide}>
-                <span className={styles.amount}>
-                  {c.amount ? formatCurrency(c.amount) : '—'}
-                </span>
+                <div className={styles.amountRow}>
+                  {c.amountPrivate && c.amount > 0 && (
+                    <span
+                      className={styles.privateIcon}
+                      title="Privado: el donante prefiere que Mariángeles no vea el importe"
+                      aria-label="Importe privado: oculto para Mariángeles"
+                    >
+                      <Lock size={14} aria-hidden="true" />
+                    </span>
+                  )}
+                  <span className={styles.amount}>
+                    {c.amount ? formatCurrency(c.amount) : '—'}
+                  </span>
+                </div>
                 <div className={styles.actions}>
                   {c.paymentStatus === 'pending' && c.amount > 0 && (
                     <button
