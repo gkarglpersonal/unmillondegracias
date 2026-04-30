@@ -11,7 +11,7 @@ export default function HeroSection() {
       <div className={styles.portraitWrap}>
         <img
           src="/images/Mariangeles_Hero.png"
-          alt="Mariángeles"
+          alt="MªÁngeles"
           className={styles.portraitImg}
         />
       </div>

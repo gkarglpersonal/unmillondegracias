@@ -73,7 +73,7 @@ export default function ExportTools() {
       <header>
         <h2 className={styles.heading}>Exportar para entrega final</h2>
         <p className={styles.lead}>
-          Genera los archivos que entregarás a Mariángeles. El PDF incluye una
+          Genera los archivos que entregarás a MªÁngeles. El PDF incluye una
           portada y todos los mensajes maquetados; el ZIP empaqueta todas las
           fotos aprobadas con fecha y nombre.
         </p>

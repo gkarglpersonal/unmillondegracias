@@ -287,5 +287,5 @@ export const seedConfig = {
   totalTripCost: 10500,
   heroTitle: '40 años. Miles de niños. Una maestra que lo ha dado todo.',
   heroSubtitle:
-    'Mariángeles ha dedicado más de cuatro décadas a su vocación con ánimo, ilusión y una entrega que ha marcado a generaciones. Es nuestro turno de devolverle aunque sea una pequeña parte de todo lo que nos ha dado.',
+    'MªÁngeles ha dedicado más de cuatro décadas a su vocación con ánimo, ilusión y una entrega que ha marcado a generaciones. Es nuestro turno de devolverle aunque sea una pequeña parte de todo lo que nos ha dado.',
 };
