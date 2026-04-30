@@ -119,17 +119,18 @@
 }
 .assignBtn:hover { background: var(--color-honey-600); }
 
-/* Desktop: sidebar fijo a la derecha */
+/* Desktop: sidebar fijo a la derecha, justo debajo del header + tabs del admin */
 @media (min-width: 1024px) {
   .sidebar {
     position: fixed;
-    top: 96px;
+    top: 200px;
     right: 24px;
     width: 280px;
-    max-height: calc(100vh - 120px);
+    max-height: calc(100vh - 220px);
     overflow-y: auto;
     margin-top: 0;
     z-index: var(--z-sticky);
     box-shadow: var(--shadow-soft);
+    border-radius: 0;
   }
 }
