@@ -38,6 +38,7 @@ export const formSchema = z.object({
     })
     .nullable()
     .optional(),
+  amountPrivate: z.boolean().optional().default(false),
 });
 
 export const defaultFormValues = {
@@ -46,4 +47,5 @@ export const defaultFormValues = {
   message: '',
   tripItemId: '',
   amount: '',
+  amountPrivate: false,
 };

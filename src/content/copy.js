@@ -86,6 +86,8 @@ export const copy = {
       amountHint: 'Opcional. Si no indicas un importe, solo se publicarán tu mensaje y/o foto.',
       amountSuggestedHint: 'Importe sugerido para esta experiencia. Puedes cambiarlo o dejarlo en blanco.',
       amountOtherLabel: 'Otro',
+      amountPrivate:
+        'Prefiero no mostrar mi aportación — Mariángeles verá mi nombre y mensaje, pero no el importe.',
     },
     submit: 'Enviar',
     successTitle: '¡Gracias!',

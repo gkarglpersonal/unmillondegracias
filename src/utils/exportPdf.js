@@ -1,4 +1,5 @@
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
+import { formatCurrency } from './formatCurrency.js';
 
 const PAGE_W = 595.28;  // A4 portrait
 const PAGE_H = 841.89;
@@ -16,13 +17,17 @@ const COLOR_ALPINE = rgb(0.24, 0.32, 0.20);  // #3D5233
  * maquetado para impresión o entrega en USB.
  *
  * - Portada: título + subtítulo
- * - Una entrada por mensaje: nombre + fecha + texto
+ * - Una entrada por mensaje: nombre + fecha + (monto si aplica) + texto
  * - Salto de página automático
  *
  * Recibe el array de mensajes (formato messageWall) ya filtrado.
+ * Si `contributionsById` viene (Map indexada por contributionId), debajo
+ * de la fecha se dibuja el monto aportado: `—` si la persona marcó
+ * `amountPrivate`, importe formateado si no, nada si no hay aportación.
+ *
  * Devuelve un Uint8Array; el caller dispara la descarga.
  */
-export async function generateMessagesPdf(messages, { totalContributors = null } = {}) {
+export async function generateMessagesPdf(messages, { totalContributors = null, contributionsById = null } = {}) {
   const pdf = await PDFDocument.create();
   const fontRegular = await pdf.embedFont(StandardFonts.TimesRoman);
   const fontBold = await pdf.embedFont(StandardFonts.TimesRomanBold);
@@ -93,8 +98,16 @@ export async function generateMessagesPdf(messages, { totalContributors = null }
       ? msg.createdAt.toDate().toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })
       : '';
 
+    const contrib = msg.contributionId
+      ? contributionsById?.get(msg.contributionId)
+      : null;
+    const amountStr =
+      contrib && contrib.amount && contrib.amount > 0
+        ? (contrib.amountPrivate ? '—' : formatCurrency(contrib.amount))
+        : '';
+
     const lines = wrapText(msg.message || '', fontRegular, 13, CONTENT_W);
-    const blockHeight = 28 + (dateStr ? 18 : 0) + lines.length * 18 + 32;
+    const blockHeight = 28 + (dateStr ? 18 : 0) + (amountStr ? 18 : 0) + lines.length * 18 + 32;
 
     if (cursorY - blockHeight < MARGIN_Y) {
       page = pdf.addPage([PAGE_W, PAGE_H]);
@@ -120,6 +133,18 @@ export async function generateMessagesPdf(messages, { totalContributors = null }
         size: 9,
         font: fontSans,
         color: COLOR_MUTED,
+      });
+      cursorY -= 18;
+    }
+
+    // Monto aportado (si la persona aportó y no pidió privacidad)
+    if (amountStr) {
+      page.drawText(amountStr, {
+        x: MARGIN_X,
+        y: cursorY,
+        size: 11,
+        font: fontBold,
+        color: COLOR_HONEY,
       });
       cursorY -= 18;
     }

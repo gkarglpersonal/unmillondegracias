@@ -34,6 +34,7 @@ export async function createContribution({
   photoStoragePath = null,
   tripItemId = null,
   amount = null,
+  amountPrivate = false,
 }) {
   // 1. Crear messageWall doc
   const publicRef = await addDoc(collection(db, C_PUBLIC), {
@@ -49,6 +50,8 @@ export async function createContribution({
     contributionId: null,
   });
 
+  const normalizedAmount = amount && amount > 0 ? Number(amount) : null;
+
   // 2. Crear contributions doc, con FK al publicId
   const privateRef = await addDoc(collection(db, C_PRIVATE), {
     name,
@@ -56,7 +59,8 @@ export async function createContribution({
     message,
     photoStoragePath,
     tripItemId,
-    amount: amount && amount > 0 ? Number(amount) : null,
+    amount: normalizedAmount,
+    amountPrivate: normalizedAmount ? Boolean(amountPrivate) : false,
     paymentStatus: 'pending',
     publicMessageId: publicRef.id,
     createdAt: serverTimestamp(),

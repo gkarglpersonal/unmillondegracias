@@ -155,3 +155,37 @@
   text-transform: none;
   white-space: pre-wrap;
 }
+
+/* ===== Checkbox de privacidad del importe ===== */
+.checkboxField {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  cursor: pointer;
+  margin-top: calc(var(--space-2) * -1);
+}
+
+/* Override del estilo underline aplicado a todos los inputs del .fields */
+.fields input.checkbox {
+  width: auto;
+  flex-shrink: 0;
+  margin: 3px 0 0;
+  padding: 0;
+  border: 1px solid var(--border-default);
+  border-radius: 3px;
+  cursor: pointer;
+  accent-color: var(--honey);
+}
+
+.fields input.checkbox:focus {
+  outline: 2px solid var(--honey);
+  outline-offset: 2px;
+  border-bottom-width: 1px;
+  padding: 0;
+}
+
+.checkboxText {
+  font-size: var(--fs-body-sm);
+  color: var(--text-body);
+  line-height: 1.45;
+}
