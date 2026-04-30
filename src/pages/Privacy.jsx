@@ -80,7 +80,7 @@ export default function Privacy() {
 
         <p style={{ ...paragraphStyle, marginTop: 'var(--space-5)' }}>
           Esta página ha sido creada con un único propósito: rendir homenaje a
-          Mariángeles en su jubilación y organizar un regalo colectivo de las
+          MªÁngeles en su jubilación y organizar un regalo colectivo de las
           familias, exalumnos y compañeros del Colegio Everest School Monteclaro.
         </p>
 
@@ -101,7 +101,7 @@ export default function Privacy() {
           <h2 style={headingStyle}>Qué datos recogemos</h2>
           <p style={paragraphStyle}>
             Cuando rellenas el formulario de participación, recogemos tu nombre,
-            correo electrónico, el mensaje que quieras dejar para Mariángeles y,
+            correo electrónico, el mensaje que quieras dejar para MªÁngeles y,
             opcionalmente, una foto. Si decides contribuir al regalo, también
             indicamos la partida elegida y el importe.
           </p>
@@ -114,7 +114,7 @@ export default function Privacy() {
             y foto en esta página como parte del homenaje, coordinar tu
             contribución al regalo con la agencia de viajes Pangea (que te
             enviará el enlace de pago directamente a tu correo), y entregar a
-            Mariángeles al final la lista completa de personas que han
+            MªÁngeles al final la lista completa de personas que han
             participado, con sus mensajes y fotos.
           </p>
         </section>

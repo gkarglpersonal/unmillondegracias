@@ -7,7 +7,7 @@ export const copy = {
     eyebrow: 'Un millón de gracias',
     title: '40 años. Miles de niños. Una maestra que lo ha dado todo.',
     subtitle:
-      'Más de cuatro décadas dedicando cada día a sus alumnos con la misma ilusión del primero. Maestra de infantil en el Colegio Everest de Monteclaro, Mariángeles ha marcado a generaciones de niños y sus familias. Este viaje es nuestro gracias colectivo.',
+      'Más de cuatro décadas dedicando cada día a sus alumnos con la misma ilusión del primero. Maestra de infantil en el Colegio Everest de Monteclaro, MªÁngeles ha marcado a generaciones de niños y sus familias. Este viaje es nuestro agradecimiento.',
     contributorCounter: (n) => {
       if (!n || n <= 0) return 'Sé el primero en sumarte.';
       if (n === 1) return '1 persona se ha sumado.';
@@ -20,17 +20,14 @@ export const copy = {
     title: 'La maestra que nunca perdió la ilusión del primer día.',
     eyebrow: 'Su trayectoria',
     past: [
-      'Mariángeles llegó al Colegio Everest School Monteclaro en 1985. Desde entonces, no ha parado.',
-      'Generación tras generación, ha sido la maestra de infantil que recibe a los niños cuando todavía son muy pequeños para entender lo que es un colegio, y les enseña — con paciencia, con alegría, con un amor que se nota desde el primer día — que este lugar es seguro, que aprender es divertido, y que hay alguien aquí que los quiere ver crecer.',
+      'MªÁngeles llegó al Colegio Everest School Monteclaro en 1985. Desde entonces, no ha parado.',
+      'Generación tras generación, ha sido la maestra de infantil que recibe a los niños cuando todavía son muy pequeños para entender lo que es un colegio, y les enseña que este lugar es seguro, que aprender es divertido, y que hay alguien aquí que los quiere ver crecer.',
       'Cuarenta años dan para mucho. Dan para miles de niños que hoy son adultos y que todavía recuerdan su nombre. Dan para cientos de familias que esperaban en la puerta de su clase para hablarle, para resolver dudas, para contarle cosas. Dan para festivales de Grease y de Alicia en el País de las Maravillas, para proyectos, canciones, abrazos y tardes preparando clases con la misma ilusión del primer septiembre.',
-      '“Es una maestra como pocos en este mundo”, dice Ivonne, su amiga y compañera en el cole durante 27 años. “Lucha mucho por sacar lo mejor de cada niño.”',
-      'Lo más extraordinario de Mariángeles no es que lleve cuarenta años en el mismo colegio. Es que, a pocos meses de jubilarse, sigue pareciendo que está al inicio de su carrera. Cariñosa, alegre, dinámica, positiva. Siempre con sus tacones, sus collares y sus pendientes. Siempre ella.',
+      '"Es una maestra como pocos en este mundo", dice Yvonne, su amiga y compañera en el cole durante 27 años. "Lucha mucho por sacar lo mejor de cada niño."',
+      'Lo más extraordinario de MªÁngeles no es que lleve cuarenta años en el mismo colegio. Es que, a pocos meses de jubilarse, sigue pareciendo que está al inicio de su carrera. Cariñosa, alegre, dinámica, positiva. Siempre con sus tacones, sus collares y sus pendientes. Siempre ella.',
     ],
     future: [
-      'Ahora es su turno.',
-      'Este verano, Mariángeles cierra un capítulo que ha durado toda una vida profesional. Y nosotros — familias, exalumnos, compañeras — queremos estar ahí para abrir el siguiente.',
-      'Este viaje a Argentina es nuestro gracias colectivo. Un regalo de tiempo, de libertad y de aventura para alguien que ha dedicado cada día de su vida profesional a los demás.',
-      'Ahora le toca a ella descubrir, explorar y disfrutar. Y nosotros queremos ser parte de ese momento.',
+      'Este verano, MªÁngeles cierra un capítulo que ha durado toda una vida profesional. Y familias y exalumnos queremos estar ahí para abrir el siguiente.',
     ],
     eras: [
       {
@@ -54,7 +51,7 @@ export const copy = {
   trip: {
     title: 'El nuevo capítulo',
     transition:
-      'Ahora es su turno. Este viaje es nuestro gracias colectivo: tiempo, libertad y una nueva etapa que empieza.',
+      'Ahora es su turno. Este viaje es nuestro agradecimiento: tiempo, libertad y una nueva etapa que empieza.',
     intro:
       'Un viaje a Argentina para dos personas, organizado con PANGEA The Travel Store. Como en una lista de bodas, puedes contribuir a la experiencia que más te emocione. Al final, ella decidirá cómo disfrutarlo.',
     howItWorks: [
@@ -64,7 +61,7 @@ export const copy = {
       'Tu nombre aparece en el muro y la barra de progreso avanza.',
     ],
     privacyNote:
-      'Los nombres son públicos en la página. Los importes no se muestran nunca, pero Mariángeles recibirá la lista completa al final.',
+      'Los nombres son públicos en la página. Los importes no se muestran nunca, pero MªÁngeles recibirá la lista completa al final.',
   },
 
   recentFeed: {
@@ -76,9 +73,9 @@ export const copy = {
     fields: {
       name: 'Nombre y apellidos',
       email: 'Correo electrónico',
-      message: 'Mensaje para Mariángeles (opcional)',
+      message: 'Mensaje para MªÁngeles (opcional)',
       messagePlaceholder:
-        'Si no sabes por dónde empezar:\n· ¿Cuál es el recuerdo más bonito que tienes de Mariángeles?\n· ¿Qué es lo que más la define como persona o como profesora, en una frase?\n· ¿Qué le dirías si pudieras decirle algo en su último día de trabajo?',
+        'Si no sabes por dónde empezar:\n· ¿Cuál es el recuerdo más bonito que tienes de MªÁngeles?\n· ¿Qué es lo que más la define como persona o como profesora, en una frase?\n· ¿Qué le dirías si pudieras decirle algo en su último día de trabajo?',
       photo: 'Foto (opcional)',
       tripItem: '¿Quieres dedicar tu aportación a algo concreto?',
       tripItemDefault: 'Sin preferencia · al fondo general',
@@ -87,7 +84,7 @@ export const copy = {
       amountSuggestedHint: 'Importe sugerido para esta experiencia. Puedes cambiarlo o dejarlo en blanco.',
       amountOtherLabel: 'Otro',
       amountPrivate:
-        'Prefiero no mostrar mi aportación — Mariángeles verá mi nombre y mensaje, pero no el importe.',
+        'Prefiero no mostrar mi aportación — MªÁngeles verá mi nombre y mensaje, pero no el importe.',
     },
     submit: 'Enviar',
     successTitle: '¡Gracias!',
@@ -111,6 +108,6 @@ export const copy = {
       'Tu importe exacto',
     ],
     forMariangeles:
-      'Mariángeles recibirá al final la lista completa de quienes han participado y los mensajes y fotos compartidos.',
+      'MªÁngeles recibirá al final la lista completa de quienes han participado y los mensajes y fotos compartidos.',
   },
 };

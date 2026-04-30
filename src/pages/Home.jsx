@@ -59,7 +59,7 @@ export default function Home() {
               color: 'var(--text-subtle)',
             }}
           >
-            © 2026 · Un millón de gracias · Homenaje privado a Mariángeles ·{' '}
+            © 2026 · Un millón de gracias · Homenaje privado a MªÁngeles ·{' '}
             <Link
               to="/privacidad"
               style={{
