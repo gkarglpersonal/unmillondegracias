@@ -11,7 +11,8 @@ instrucciones para hacer.
 
 | Documento | Estado | Resumen |
 |---|---|---|
-| [Fase 2 — importantes y menores](./fase-2-importantes-menores.md) | 📋 Listo para ejecutar | Resuelve los 12 hallazgos importantes + 7 menores de la auditoría 2026-04-30 + 3 bugs colaterales detectados por QAs de fase 1. |
+| [Fase 2 — kickoff autónomo](./fase-2-kickoff.md) | 📋 Listo para pegar | Wrapper de arranque que se pega tal cual en una sesión nueva: hace setup git, da permisos amplios y delega al runbook técnico. |
+| [Fase 2 — runbook técnico](./fase-2-importantes-menores.md) | 📋 Listo para ejecutar | Especificación: 12 importantes + 7 menores + 3 bugs colaterales de QAs de fase 1. |
 
 ## Cómo usar
 
