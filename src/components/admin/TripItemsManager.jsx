@@ -15,7 +15,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, Plus, Pencil, Trash2, Check, X } from 'lucide-react';
+import { GripVertical, Plus, Pencil, Trash2, Check, X, ChevronDown, ChevronRight, Archive, RotateCcw } from 'lucide-react';
 import { useTripItems } from '../../hooks/useTripItems.js';
 import { useSections } from '../../hooks/useSections.js';
 import { useAuth } from '../../hooks/useAuth.jsx';
@@ -23,7 +23,9 @@ import { auth } from '../../firebase/config.js';
 import {
   createTripItem,
   updateTripItem,
-  deleteTripItem,
+  archiveTripItem,
+  unarchiveTripItem,
+  hardDeleteTripItem,
   batchUpdateOrders,
 } from '../../firebase/tripItems.js';
 import {
@@ -57,6 +59,12 @@ export default function TripItemsManager() {
   const [renameValue, setRenameValue] = useState('');
   const [pendingDelete, setPendingDelete] = useState(null);
   const [activeDragId, setActiveDragId] = useState(null);
+
+  // Sección colapsable de archivadas
+  const [archivedOpen, setArchivedOpen] = useState(false);
+
+  // Modal de eliminación permanente (hard delete) de partidas
+  const [hardDeleteTarget, setHardDeleteTarget] = useState(null);
 
   const reportError = async (label, err) => {
     const u = auth.currentUser;
@@ -125,20 +133,24 @@ export default function TripItemsManager() {
     }
   };
 
-  // Items agrupados por nombre de sección + bucket "Sin asignar"
+  // Particionamos: activos (UI principal) vs archivados (sección aparte).
+  const activeItems = useMemo(() => items.filter((it) => it.active !== false), [items]);
+  const archivedItems = useMemo(() => items.filter((it) => it.active === false), [items]);
+
+  // Items activos agrupados por nombre de sección + bucket "Sin asignar"
   const itemsBySection = useMemo(() => {
     const map = {};
     for (const s of sections) map[s.name] = [];
     map.__unassigned__ = [];
     const sectionNames = new Set(sections.map((s) => s.name));
-    for (const it of items) {
+    for (const it of activeItems) {
       if (it.city && sectionNames.has(it.city)) map[it.city].push(it);
       else map.__unassigned__.push(it);
     }
     const sortByOrder = (a, b) => (a.order || 99) - (b.order || 99);
     for (const k of Object.keys(map)) map[k].sort(sortByOrder);
     return map;
-  }, [sections, items]);
+  }, [sections, activeItems]);
 
   // ---------- Edición de partidas ----------
   const startNew = () => {
@@ -194,20 +206,49 @@ export default function TripItemsManager() {
     }
   };
 
-  const deleteItem = async (id, name) => {
-    if (!confirm(`¿Borrar la partida "${name}"? Esta acción no se puede deshacer.`)) return;
+  // Acción primaria: archivar (soft delete). La partida desaparece de la
+  // UI pública y de la lista activa de admin, pero las contribuciones
+  // que la referencian siguen vinculadas — nada se rompe.
+  const archiveItem = async (id, name) => {
+    if (!confirm(`¿Archivar la partida "${name}"?\n\nDejará de aparecer en la web pública. Las aportaciones vinculadas se mantienen intactas. Puedes reactivarla cuando quieras.`)) return;
+    setErrorMsg(null);
     setBusy(true);
     try {
-      await deleteTripItem(id);
+      await archiveTripItem(id);
+    } catch (err) {
+      reportError('Archivar partida', err);
     } finally {
       setBusy(false);
     }
   };
 
-  const toggleActive = async (it) => {
+  const unarchiveItem = async (id) => {
+    setErrorMsg(null);
     setBusy(true);
     try {
-      await updateTripItem(it.id, { active: !it.active });
+      await unarchiveTripItem(id);
+    } catch (err) {
+      reportError('Reactivar partida', err);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // Acción destructiva: abre modal de confirmación con conteo de
+  // contribuciones que serían reasignadas a "fondo general".
+  const startHardDelete = (item) => {
+    setHardDeleteTarget(item);
+  };
+
+  const confirmHardDelete = async () => {
+    if (!hardDeleteTarget) return;
+    setErrorMsg(null);
+    setBusy(true);
+    try {
+      await hardDeleteTripItem(hardDeleteTarget.id, { reassignToNull: true });
+      setHardDeleteTarget(null);
+    } catch (err) {
+      reportError('Eliminar partida permanentemente', err);
     } finally {
       setBusy(false);
     }
@@ -517,8 +558,7 @@ export default function TripItemsManager() {
                   onReorderItems={handleReorderItems}
                   onEdit={startEdit}
                   onCancelEdit={cancelEdit}
-                  onToggleActive={toggleActive}
-                  onDeleteItem={deleteItem}
+                  onArchive={archiveItem}
                   renderForm={renderForm}
                 />
               ))}
@@ -532,6 +572,60 @@ export default function TripItemsManager() {
         onAssign={(it) => startEdit(it)}
       />
 
+      {archivedItems.length > 0 && (
+        <section className={styles.archivedPanel}>
+          <button
+            type="button"
+            className={styles.archivedHeader}
+            onClick={() => setArchivedOpen((v) => !v)}
+            aria-expanded={archivedOpen}
+          >
+            {archivedOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+            <Archive size={16} aria-hidden="true" />
+            <span>Partidas archivadas</span>
+            <span className={styles.archivedCount}>{archivedItems.length}</span>
+          </button>
+
+          {archivedOpen && (
+            <ul className={styles.archivedList}>
+              {archivedItems.map((it) => (
+                <li key={it.id} className={styles.archivedRow}>
+                  <div className={styles.archivedMain}>
+                    <h4 className={styles.archivedName}>{it.name}</h4>
+                    <p className={styles.archivedMeta}>
+                      {it.city || 'Sin asignar'}
+                      <span> · </span>
+                      {formatCurrency(it.raisedAmount || 0)} / {formatCurrency(it.targetAmount)}
+                      <span> · </span>
+                      {it.contributorCount || 0}{' '}
+                      {it.contributorCount === 1 ? 'persona' : 'personas'}
+                    </p>
+                  </div>
+                  <div className={styles.archivedActions}>
+                    <button
+                      type="button"
+                      className="btn-secondary"
+                      disabled={busy}
+                      onClick={() => unarchiveItem(it.id)}
+                    >
+                      <RotateCcw size={14} aria-hidden="true" /> Reactivar
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.dangerBtn}
+                      disabled={busy}
+                      onClick={() => startHardDelete(it)}
+                    >
+                      <Trash2 size={14} aria-hidden="true" /> Eliminar permanentemente
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
+
       {pendingDelete && (
         <DeleteSectionModal
           section={pendingDelete}
@@ -540,6 +634,15 @@ export default function TripItemsManager() {
           onCancel={() => setPendingDelete(null)}
           onDeleteAll={handleDeleteAll}
           onMoveToUnassigned={handleMoveToUnassigned}
+        />
+      )}
+
+      {hardDeleteTarget && (
+        <HardDeleteItemModal
+          item={hardDeleteTarget}
+          busy={busy}
+          onCancel={() => setHardDeleteTarget(null)}
+          onConfirm={confirmHardDelete}
         />
       )}
     </section>
@@ -565,8 +668,7 @@ function SortableSectionBlock({
   onReorderItems,
   onEdit,
   onCancelEdit,
-  onToggleActive,
-  onDeleteItem,
+  onArchive,
   renderForm,
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -665,8 +767,7 @@ function SortableSectionBlock({
           onReorderItems={onReorderItems}
           onEdit={onEdit}
           onCancelEdit={onCancelEdit}
-          onToggleActive={onToggleActive}
-          onDeleteItem={onDeleteItem}
+          onArchive={onArchive}
           renderForm={renderForm}
         />
       )}
@@ -678,15 +779,12 @@ function SortableSectionBlock({
 // Sortable items within a section
 // ============================================================
 function SectionItemsContext({
-  cityKey,
   items,
   editing,
   busy,
-  onReorderItems,
   onEdit,
   onCancelEdit,
-  onToggleActive,
-  onDeleteItem,
+  onArchive,
   renderForm,
 }) {
   // El ordering de items vive bajo el DnDContext de arriba: aquí solo
@@ -706,8 +804,7 @@ function SectionItemsContext({
             busy={busy}
             onEdit={onEdit}
             onCancelEdit={onCancelEdit}
-            onToggleActive={onToggleActive}
-            onDelete={onDeleteItem}
+            onArchive={onArchive}
             renderForm={renderForm}
           />
         ))}
@@ -719,7 +816,7 @@ function SectionItemsContext({
 // ============================================================
 // Item row (existente)
 // ============================================================
-function SortableRow({ item, editing, busy, onEdit, onCancelEdit, onToggleActive, onDelete, renderForm }) {
+function SortableRow({ item, editing, busy, onEdit, onCancelEdit, onArchive, renderForm }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: item.id,
   });
@@ -733,7 +830,7 @@ function SortableRow({ item, editing, busy, onEdit, onCancelEdit, onToggleActive
 
   return (
     <li ref={setNodeRef} style={style} className={styles.rowWrap}>
-      <div className={`${styles.row} ${!item.active ? styles.rowInactive : ''} ${isDragging ? styles.rowDragging : ''}`}>
+      <div className={`${styles.row} ${isDragging ? styles.rowDragging : ''}`}>
         <button
           type="button"
           className={styles.dragHandle}
@@ -747,7 +844,6 @@ function SortableRow({ item, editing, busy, onEdit, onCancelEdit, onToggleActive
           <div className={styles.rowHead}>
             <span className={styles.order}>#{item.order}</span>
             <h4 className={styles.name}>{item.name}</h4>
-            {!item.active && <span className={styles.inactiveBadge}>Inactiva</span>}
           </div>
           <p className={styles.description}>{item.description}</p>
           <div className={styles.progress}>
@@ -768,16 +864,76 @@ function SortableRow({ item, editing, busy, onEdit, onCancelEdit, onToggleActive
               Editar
             </button>
           )}
-          <button type="button" className="btn-secondary" disabled={busy} onClick={() => onToggleActive(item)}>
-            {item.active ? 'Desactivar' : 'Activar'}
-          </button>
-          <button type="button" className={styles.deleteBtn} disabled={busy} onClick={() => onDelete(item.id, item.name)}>
-            Borrar
+          <button
+            type="button"
+            className={styles.archiveBtn}
+            disabled={busy}
+            onClick={() => onArchive(item.id, item.name)}
+            title="Archivar: deja de mostrarse en la web pública pero conserva las aportaciones."
+          >
+            <Archive size={14} aria-hidden="true" /> Archivar
           </button>
         </div>
       </div>
 
       {isEditing && <div className={styles.inlineForm}>{renderForm('edit')}</div>}
     </li>
+  );
+}
+
+// ============================================================
+// Modal de eliminación permanente de partida
+// ============================================================
+function HardDeleteItemModal({ item, busy, onCancel, onConfirm }) {
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    const onKey = (e) => e.key === 'Escape' && !busy && onCancel();
+    window.addEventListener('keydown', onKey);
+    return () => {
+      document.body.style.overflow = '';
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [busy, onCancel]);
+
+  const contributorCount = item.contributorCount || 0;
+
+  return (
+    <div className={styles.modalBackdrop} role="dialog" aria-modal="true" onClick={busy ? undefined : onCancel}>
+      <div className={styles.modalSheet} onClick={(e) => e.stopPropagation()}>
+        <h3 className={styles.modalTitle}>Eliminar permanentemente &laquo;{item.name}&raquo;</h3>
+        <p className={styles.modalBody}>
+          Esta acción borra la partida de la base de datos y no se puede deshacer.
+          {contributorCount > 0 ? (
+            <>
+              {' '}Hay <strong>{contributorCount}</strong>{' '}
+              {contributorCount === 1 ? 'persona vinculada' : 'personas vinculadas'} a esta partida. Sus aportaciones se reasignarán al fondo general (sin partida específica) antes de borrar.
+            </>
+          ) : (
+            <> No hay aportaciones vinculadas, así que no se reasignará nada.</>
+          )}
+        </p>
+        <p className={styles.modalHint}>
+          Si solo quieres ocultarla de la web pública, usa <strong>Archivar</strong>: es reversible y conserva los datos.
+        </p>
+        <div className={styles.modalActions}>
+          <button
+            type="button"
+            className={styles.modalBtnCancel}
+            onClick={onCancel}
+            disabled={busy}
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            className={styles.modalBtnDanger}
+            onClick={onConfirm}
+            disabled={busy}
+          >
+            {busy ? 'Eliminando…' : 'Eliminar permanentemente'}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
