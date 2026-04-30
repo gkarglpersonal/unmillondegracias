@@ -45,7 +45,7 @@ export async function generateMessagesPdf(messages, { totalContributors = null }
     font: fontRegular,
     color: COLOR_INK,
   });
-  cover.drawText('Mariángeles', {
+  cover.drawText('MªÁngeles', {
     x: MARGIN_X,
     y: PAGE_H / 2 + 16,
     size: 56,

@@ -1,6 +1,6 @@
 # unmillondegracias.com
 
-Regalo de jubilación colectivo para Mariángeles, profesora del Colegio Everest
+Regalo de jubilación colectivo para MªÁngeles, profesora del Colegio Everest
 de Monteclaro (Madrid). Dominio: [unmillondegracias.com](https://unmillondegracias.com).
 
 > Es una **sorpresa**. La web tiene `noindex` para evitar Google. No compartir

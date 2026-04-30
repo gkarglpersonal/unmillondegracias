@@ -1,6 +1,6 @@
 # ARCHITECTURE.md — unmillondegracias.com
 
-Documento de arquitectura técnica para el regalo de jubilación de Mariángeles.
+Documento de arquitectura técnica para el regalo de jubilación de MªÁngeles.
 Basado en el brief de abril 2026. Este documento es la fuente de verdad técnica
 hasta que se apruebe e iniciemos el código.
 
@@ -452,7 +452,7 @@ una vez que **Lane A** está terminado. Lanes B/C/D/E pueden ir en paralelo.
 
 | Riesgo | Mitigación |
 |---|---|
-| Mariángeles encuentra la web por buscador | `noindex` + dominio que no contiene su nombre. |
+| MªÁngeles encuentra la web por buscador | `noindex` + dominio que no contiene su nombre. |
 | Spam o mensajes ofensivos en muro auto-publicado | Admin puede ocultar/borrar al instante. Notificación email a Gerry en cada submission. |
 | Foto inapropiada subida | Aprobación manual obligatoria antes de mostrar. |
 | EmailJS rate limit superado | Volumen esperado ~100 contribuidores × 2 emails = 200 emails, justo en el límite del free tier. Plan B: $7/mes plan personal. |
@@ -473,7 +473,7 @@ una vez que **Lane A** está terminado. Lanes B/C/D/E pueden ir en paralelo.
 - Sin captcha.
 - Línea temporal: 3 épocas.
 - Monto opcional → email a PANGEA solo si hay monto.
-- Sitio público, único protección anti-Mariángeles: `noindex`.
+- Sitio público, único protección anti-MªÁngeles: `noindex`.
 
 **Plan de ejecución:**
 1. Lane A (cimientos): Vite + React, Firebase config, design tokens, rules, GH Actions, seed de partidas.

@@ -3,7 +3,7 @@ import styles from './TimelineItem.module.css';
 
 /**
  * Tarjeta de una época. Si no hay foto todavía, muestra una placeholder
- * con icono de cámara y leyenda "Foto de Mariángeles · pendiente".
+ * con icono de cámara y leyenda "Foto de MªÁngeles · pendiente".
  *
  * Cuando llegue la foto definitiva, basta con pasar `photoUrl` y la
  * placeholder desaparece.
@@ -20,7 +20,7 @@ export default function TimelineItem({ index, period, caption, photoUrl }) {
         ) : (
           <div className={styles.placeholder} aria-label={`Foto de ${period} pendiente`}>
             <Camera size={32} strokeWidth={1.6} className={styles.placeholderIcon} aria-hidden="true" />
-            <span className={styles.placeholderText}>Foto de Mariángeles · pendiente</span>
+            <span className={styles.placeholderText}>Foto de MªÁngeles · pendiente</span>
           </div>
         )}
       </div>
