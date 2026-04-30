@@ -1,5 +1,4 @@
 import {
-  addDoc,
   collection,
   doc,
   getDocs,
@@ -9,7 +8,6 @@ import {
   runTransaction,
   serverTimestamp,
   setDoc,
-  updateDoc,
   deleteDoc,
   increment,
   where,
@@ -22,38 +20,59 @@ const C_TRIP = 'tripItems';
 const C_CONFIG = 'config';
 
 /**
- * Crea una contribución completa: doc privado + doc público.
- * Se hace como dos writes (no transacción cross-collection en cliente),
- * pero el doc público referencia al privado vía contributionId.
+ * Genera dos IDs de Firestore (cliente) para usarlos antes de cualquier
+ * write. Esto permite:
+ *  - Idempotencia ante reintentos: el llamador conserva los IDs y reintenta.
+ *  - Referencia cruzada desde el primer write (sin updateDoc posterior).
+ *  - Cleanup compensatorio preciso si algo falla a mitad del flujo.
+ */
+export function generateContributionIds() {
+  return {
+    contributionId: doc(collection(db, C_PRIVATE)).id,
+    publicMessageId: doc(collection(db, C_PUBLIC)).id,
+  };
+}
+
+/**
+ * Crea contribution + messageWall usando IDs pre-generados.
+ *
+ * Diseño:
+ *  - Acepta `contributionId` y `publicMessageId` como entrada obligatoria.
+ *    Si el usuario pulsa submit dos veces o hay un retry tras fallo, los
+ *    mismos IDs producen el mismo documento (setDoc es idempotente).
+ *  - NO recibe `photoUrl`. La foto va a Storage primero (responsabilidad
+ *    del llamador), aquí solo se guarda `photoStoragePath`. La URL
+ *    pública se popula en `messageWall` solo al aprobar la foto desde
+ *    moderación.
+ *  - Orden de writes: primero `contributions` (privado), luego `messageWall`
+ *    (público). Si fallara la segunda escritura, el llamador puede borrar
+ *    la primera vía `deleteContributionById`.
+ *
+ * No es atómico cross-collection (limitación de Firestore en cliente),
+ * pero la idempotencia + el cleanup compensatorio del llamador cierran
+ * el agujero práctico.
  */
 export async function createContribution({
+  contributionId,
+  publicMessageId,
   name,
   email,
   message = null,
-  photoUrl = null,
   photoStoragePath = null,
   tripItemId = null,
   amount = null,
   amountPrivate = false,
 }) {
-  // 1. Crear messageWall doc
-  const publicRef = await addDoc(collection(db, C_PUBLIC), {
-    name,
-    message,
-    photoUrl,
-    photoStoragePath,
-    tripItemId,
-    photoApproved: false,
-    messageHidden: false,
-    paid: false,
-    createdAt: serverTimestamp(),
-    contributionId: null,
-  });
+  if (!contributionId || !publicMessageId) {
+    throw new Error(
+      'createContribution requiere contributionId y publicMessageId pre-generados. Usa generateContributionIds().'
+    );
+  }
 
   const normalizedAmount = amount && amount > 0 ? Number(amount) : null;
 
-  // 2. Crear contributions doc, con FK al publicId
-  const privateRef = await addDoc(collection(db, C_PRIVATE), {
+  // 1. Crear contributions doc (privado). Lleva ya FK al messageWall.
+  await setDoc(doc(db, C_PRIVATE, contributionId), {
     name,
     email,
     message,
@@ -62,16 +81,56 @@ export async function createContribution({
     amount: normalizedAmount,
     amountPrivate: normalizedAmount ? Boolean(amountPrivate) : false,
     paymentStatus: 'pending',
-    publicMessageId: publicRef.id,
+    publicMessageId,
     createdAt: serverTimestamp(),
     paidAt: null,
     adminNotes: '',
   });
 
-  // 3. Update messageWall con FK reverso
-  await updateDoc(publicRef, { contributionId: privateRef.id });
+  // 2. Crear messageWall doc (público). FK ya conocida desde el inicio.
+  //    photoUrl es null al crear; se popula al aprobar la foto en
+  //    moderación (PhotosModeration). Esto evita exponer fotos sin revisar.
+  await setDoc(doc(db, C_PUBLIC, publicMessageId), {
+    name,
+    message,
+    photoUrl: null,
+    photoStoragePath,
+    tripItemId,
+    photoApproved: false,
+    messageHidden: false,
+    paid: false,
+    createdAt: serverTimestamp(),
+    contributionId,
+  });
 
-  return { contributionId: privateRef.id, publicMessageId: publicRef.id };
+  return { contributionId, publicMessageId };
+}
+
+/**
+ * Cleanup compensatorio: borra el doc de contributions.
+ * No tira: el llamador ya está manejando un fallo previo y necesita
+ * intentar limpiar recursos parciales.
+ */
+export async function deleteContributionById(contributionId) {
+  if (!contributionId) return;
+  try {
+    await deleteDoc(doc(db, C_PRIVATE, contributionId));
+  } catch (err) {
+    console.warn('deleteContributionById:', contributionId, err?.code || err?.message);
+  }
+}
+
+/**
+ * Cleanup compensatorio: borra el doc de messageWall.
+ * No tira (mismo motivo que deleteContributionById).
+ */
+export async function deletePublicMessageById(publicMessageId) {
+  if (!publicMessageId) return;
+  try {
+    await deleteDoc(doc(db, C_PUBLIC, publicMessageId));
+  } catch (err) {
+    console.warn('deletePublicMessageById:', publicMessageId, err?.code || err?.message);
+  }
 }
 
 /* -------- Admin -------- */

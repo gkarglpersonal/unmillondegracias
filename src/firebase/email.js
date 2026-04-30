@@ -12,20 +12,35 @@ function init() {
   initialized = true;
 }
 
+/**
+ * Contrato unificado de retorno para los notificadores:
+ *  { ok: true }                               — envío correcto.
+ *  { ok: false, reason: 'not-configured' }    — variables de entorno ausentes.
+ *  { ok: false, reason: 'send-failed', error } — EmailJS lanzó.
+ *
+ * Estas funciones NUNCA tiran. El llamador decide qué hacer con el fallo
+ * (típicamente: guardar la contribución igual y avisar al usuario).
+ */
+
 /** Envía a PANGEA The Travel Store (con copia a Gerry) los datos para gestionar el cobro. */
 export async function notifyPangea({ name, email, amount, tripItemName, message }) {
   init();
-  if (!SERVICE_ID || !TEMPLATE_PANGEA) {
-    console.warn('EmailJS no configurado: omitiendo notifyPangea.');
-    return;
+  if (!SERVICE_ID || !TEMPLATE_PANGEA || !PUBLIC_KEY) {
+    return { ok: false, reason: 'not-configured' };
   }
-  return emailjs.send(SERVICE_ID, TEMPLATE_PANGEA, {
-    contributor_name: name,
-    contributor_email: email,
-    amount_eur: amount,
-    trip_item: tripItemName || 'Sin preferencia (fondo general)',
-    message: message || '(sin mensaje)',
-  });
+  try {
+    await emailjs.send(SERVICE_ID, TEMPLATE_PANGEA, {
+      contributor_name: name,
+      contributor_email: email,
+      amount_eur: amount,
+      trip_item: tripItemName || 'Sin preferencia (fondo general)',
+      message: message || '(sin mensaje)',
+    });
+    return { ok: true };
+  } catch (error) {
+    console.error('notifyPangea: EmailJS send failed', error);
+    return { ok: false, reason: 'send-failed', error };
+  }
 }
 
 const KIND_LABELS = {
@@ -36,16 +51,21 @@ const KIND_LABELS = {
 /** Notifica a Gerry de cualquier submission (con/sin contribución). */
 export async function notifyAdmin({ name, kind, hasPhoto, hasMessage, amount, adminUrl }) {
   init();
-  if (!SERVICE_ID || !TEMPLATE_ADMIN) {
-    console.warn('EmailJS no configurado: omitiendo notifyAdmin.');
-    return;
+  if (!SERVICE_ID || !TEMPLATE_ADMIN || !PUBLIC_KEY) {
+    return { ok: false, reason: 'not-configured' };
   }
-  return emailjs.send(SERVICE_ID, TEMPLATE_ADMIN, {
-    contributor_name: name,
-    submission_kind: KIND_LABELS[kind] || kind,
-    has_photo: hasPhoto ? 'Sí' : 'No',
-    has_message: hasMessage ? 'Sí' : 'No',
-    amount_eur: amount ? `${amount} €` : '—',
-    admin_url: adminUrl,
-  });
+  try {
+    await emailjs.send(SERVICE_ID, TEMPLATE_ADMIN, {
+      contributor_name: name,
+      submission_kind: KIND_LABELS[kind] || kind,
+      has_photo: hasPhoto ? 'Sí' : 'No',
+      has_message: hasMessage ? 'Sí' : 'No',
+      amount_eur: amount ? `${amount} €` : '—',
+      admin_url: adminUrl,
+    });
+    return { ok: true };
+  } catch (error) {
+    console.error('notifyAdmin: EmailJS send failed', error);
+    return { ok: false, reason: 'send-failed', error };
+  }
 }
