@@ -104,6 +104,73 @@ export async function movePhotoToApproved(currentStoragePath) {
 }
 
 /**
+ * Mueve una foto desde `photos/approved/...` de vuelta a
+ * `photos/pending/{newId}-{nombreOriginal}` y devuelve el nuevo path.
+ * Inverso de `movePhotoToApproved`: se usa al "desaprobar" una foto
+ * para garantizar que el blob deja de ser legible públicamente.
+ *
+ * Implementación: descarga el blob desde el path origen, lo sube al
+ * nuevo path en `pending/` y borra el viejo. (Storage no expone
+ * mover/renombrar nativamente desde el SDK web.) NO devuelve URL
+ * pública: las fotos en `pending/` solo son legibles por admin.
+ *
+ * Idempotente: si el path ya está bajo `photos/pending/`, devuelve el
+ * mismo path sin hacer nada (igual criterio que `movePhotoToApproved`
+ * cuando el path ya está bajo `approved/`).
+ *
+ * Robustez: si la copia al destino falla, propaga el error y deja el
+ * estado intacto. Si la copia tiene éxito pero el borrado del origen
+ * falla, deja un warning y NO propaga: un blob duplicado en `pending/`
+ * (privado) es preferible a que el blob siga accesible en `approved/`.
+ *
+ * Solo el admin puede ejecutar esto correctamente; las reglas exigen
+ * autenticación admin para escribir en /pending/ y para leer/borrar
+ * en /approved/.
+ *
+ * @param {string} currentApprovedPath
+ * @returns {Promise<{ newStoragePath: string }>}
+ */
+export async function movePhotoToPending(currentApprovedPath) {
+  if (!currentApprovedPath) {
+    throw new Error('movePhotoToPending: storagePath vacío.');
+  }
+
+  // Idempotencia: ya está en pending/, no hacemos nada.
+  if (currentApprovedPath.startsWith('photos/pending/')) {
+    return { newStoragePath: currentApprovedPath };
+  }
+
+  const srcRef = ref(storage, currentApprovedPath);
+
+  // Conserva el nombre del archivo (parte tras la última /).
+  const fileName = currentApprovedPath.split('/').pop();
+  const newStoragePath = `photos/pending/${fileName}`;
+  const dstRef = ref(storage, newStoragePath);
+
+  // 1. Descargar blob desde approved/ (admin tiene permiso de read).
+  const blob = await getBlob(srcRef);
+
+  // 2. Subir al destino pending/. Si esto falla, propagamos el error y
+  //    el estado queda como estaba (nada movido).
+  await uploadBytes(dstRef, blob, { contentType: blob.type || undefined });
+
+  // 3. Borrar el origen. Si falla, lo dejamos: el blob duplicado en
+  //    pending/ es privado, y el doc apuntará al nuevo path. Lo peor
+  //    sería propagar y dejar el blob aprobado todavía accesible.
+  try {
+    await deleteObject(srcRef);
+  } catch (err) {
+    console.warn(
+      'movePhotoToPending: no se pudo borrar el origen aprobado:',
+      currentApprovedPath,
+      err?.code
+    );
+  }
+
+  return { newStoragePath };
+}
+
+/**
  * Borra un blob por su path. Admin-only (las reglas lo exigen para
  * /pending/ y /approved/).
  */

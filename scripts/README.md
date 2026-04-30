@@ -64,4 +64,7 @@ node scripts/migrateExistingPhotos.js
 >    Las reglas nuevas mantienen un bloque de compat para
 >    `/photos/{name}` que solo permite acceso al admin, así que las
 >    URLs antiguas ya no funcionarán para el público.
-> 2. Ejecutar el script de migración.
+> 2. Ejecutar el dry-run primero para verificar qué se moverá:
+>    `node scripts/migrateExistingPhotos.js --dry-run`.
+> 3. Si la previsualización es correcta, ejecutar la migración real:
+>    `node scripts/migrateExistingPhotos.js`.

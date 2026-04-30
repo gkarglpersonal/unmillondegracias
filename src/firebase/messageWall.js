@@ -15,6 +15,7 @@ import {
 import { db } from './config.js';
 import {
   movePhotoToApproved,
+  movePhotoToPending,
   deletePhotoByPath,
 } from './storage.js';
 
@@ -185,6 +186,16 @@ export async function approvePhoto(messageId) {
     throw new Error('Esta entrada no tiene foto para aprobar.');
   }
 
+  // Defensa en profundidad: solo aprobamos fotos que provengan de
+  // `photos/pending/`. Si por bug, migración inconsistente o
+  // manipulación externa el doc apuntara a otra ruta, abortamos
+  // antes de mover el blob para no exponer fotos no validadas.
+  if (!data.photoStoragePath.startsWith('photos/pending/')) {
+    throw new Error(
+      `Foto en path inesperado: ${data.photoStoragePath}. Solo se aprueban fotos desde photos/pending/.`
+    );
+  }
+
   const { newStoragePath, publicUrl } = await movePhotoToApproved(
     data.photoStoragePath
   );
@@ -199,17 +210,60 @@ export async function approvePhoto(messageId) {
 }
 
 /**
- * Quita la aprobación de una foto: vuelve a marcarla pendiente y limpia
- * la URL pública. NO mueve el blob de vuelta a `pending/` automáticamente
- * — la foto queda físicamente en `photos/approved/` pero deja de
- * enlazarse desde la galería. Si después se rechaza, `rejectPhoto`
- * borra el blob.
+ * Quita la aprobación de una foto: la devuelve físicamente a
+ * `photos/pending/...` (donde solo el admin puede leerla) y limpia la
+ * URL pública. Esto cierra el agujero de privacidad: tras desaprobar,
+ * cualquier URL pública previamente cacheada o escrapeada deja de
+ * resolver el blob.
+ *
+ * Pasos:
+ *  1. Lee el doc para obtener `photoStoragePath` actual (típicamente
+ *     bajo `photos/approved/`).
+ *  2. Si no tiene path o ya está bajo `pending/`, solo actualiza los
+ *     flags del doc (idempotente).
+ *  3. Si está bajo `approved/`, llama a `movePhotoToPending` para
+ *     copiar el blob a `pending/` y borrar el viejo. Si la copia
+ *     falla, propaga y deja el estado intacto. Si solo falla el
+ *     borrado del origen, `movePhotoToPending` lo tolera con warning
+ *     (un duplicado privado es preferible a un blob aprobado
+ *     accesible).
+ *  4. Actualiza el doc con el nuevo path, `photoUrl: null` y
+ *     `photoApproved: false`.
+ *
+ * Idempotente: aplicarlo dos veces no rompe nada — la segunda llamada
+ * verá el path ya en `pending/` y solo refrescará los flags del doc.
  */
 export async function unapprovePhoto(messageId) {
-  await updateDoc(doc(db, COL, messageId), {
+  const ref = doc(db, COL, messageId);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) {
+    throw new Error('Mensaje no encontrado.');
+  }
+  const data = snap.data();
+
+  // Sin path o ya en pending: nada que mover físicamente, solo flags.
+  if (
+    !data.photoStoragePath ||
+    data.photoStoragePath.startsWith('photos/pending/')
+  ) {
+    await updateDoc(ref, {
+      photoApproved: false,
+      photoUrl: null,
+    });
+    return { newStoragePath: data.photoStoragePath || null };
+  }
+
+  // Mover blob de vuelta a pending/. Si la copia falla, propagamos y
+  // no tocamos Firestore: el estado queda igual que antes.
+  const { newStoragePath } = await movePhotoToPending(data.photoStoragePath);
+
+  await updateDoc(ref, {
+    photoStoragePath: newStoragePath,
     photoApproved: false,
     photoUrl: null,
   });
+
+  return { newStoragePath };
 }
 
 /**
