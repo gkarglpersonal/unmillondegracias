@@ -12,6 +12,11 @@ descendente.
 |---|---|---|---|
 | 2026-04-30 | [Fixes críticos post-auditoría](./2026-04-30-fixes-criticos.md) | 6 críticos resueltos en 2 olas con QA gates. 5 commits, push + deploy a producción. | ✅ Cerrado |
 
+## Carpetas relacionadas
+
+- [`../runbooks/`](../runbooks/) — prompts operativos reutilizables para
+  ejecutar fases sucesivas de mejoras con el patrón coordinado.
+
 ## Cómo añadir un report nuevo
 
 1. Copia el formato del último report como plantilla.
