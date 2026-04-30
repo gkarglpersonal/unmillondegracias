@@ -7,19 +7,41 @@ service firebase.storage {
         && request.auth.token.email == 'gerardo.kargl@gmail.com';
     }
 
-    match /photos/{photoName} {
-      // Lectura pública (URLs aparecen en la galería tras aprobación admin).
-      allow read: if true;
-
-      // Cualquiera puede subir si:
-      //  - el archivo es imagen
-      //  - pesa menos de 5 MB
+    // ------------------------------------------------------------------
+    // photos/pending/** — fotos recién subidas, pendientes de aprobación.
+    // - Cualquiera puede subir si es imagen y < 5 MB.
+    // - SOLO el admin puede leer/listar (privacidad: aunque la foto se
+    //   rechace, no debe ser accesible públicamente vía URL).
+    // - SOLO el admin puede borrar/sustituir (al aprobar la mueve a
+    //   /photos/approved/, al rechazar la borra).
+    // ------------------------------------------------------------------
+    match /photos/pending/{photoName} {
+      allow read: if isAdmin();
       allow create: if
         request.resource.size < 5 * 1024 * 1024
         && request.resource.contentType.matches('image/.*');
-
-      // Solo admin puede borrar/sustituir.
       allow update, delete: if isAdmin();
+    }
+
+    // ------------------------------------------------------------------
+    // photos/approved/** — fotos ya aprobadas por admin, públicas.
+    // - Lectura pública (galería).
+    // - SOLO el admin puede crear (mover desde /pending/), modificar o
+    //   borrar. El usuario público nunca sube directo aquí.
+    // ------------------------------------------------------------------
+    match /photos/approved/{photoName} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    // ------------------------------------------------------------------
+    // Compatibilidad temporal con uploads antiguos en /photos/{name}
+    // (sin subcarpeta). Solo admin puede leer/borrar; el script de
+    // migración los mueve a pending/ o approved/. Cuando termine la
+    // migración este bloque puede eliminarse.
+    // ------------------------------------------------------------------
+    match /photos/{photoName} {
+      allow read, write: if isAdmin();
     }
   }
 }

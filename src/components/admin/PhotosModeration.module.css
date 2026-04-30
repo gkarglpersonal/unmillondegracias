@@ -63,6 +63,27 @@
   object-fit: cover;
 }
 
+.imgFallback {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--fs-caption);
+  color: var(--text-muted);
+  background: var(--color-bg-soft);
+  font-style: italic;
+}
+
+.actionError {
+  background: rgba(178, 90, 71, 0.10);
+  color: var(--color-error);
+  font-size: var(--fs-body-sm);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  margin: 0;
+}
+
 .body {
   padding: var(--space-3);
   display: flex;
