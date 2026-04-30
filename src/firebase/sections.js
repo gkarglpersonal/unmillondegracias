@@ -43,6 +43,25 @@ export async function createSection({ name, order }) {
 }
 
 /**
+ * Siembra varias secciones en una sola operación atómica. Más robusto que
+ * 6 setDoc paralelos: un único round trip con el mismo ID token, lo que
+ * descarta races entre el token refresh y los writes individuales.
+ */
+export async function seedSections(names) {
+  if (!names?.length) return;
+  const batch = writeBatch(db);
+  names.forEach((name, idx) => {
+    const id = doc(collection(db, COL)).id;
+    batch.set(doc(db, COL, id), {
+      name: name.trim(),
+      order: idx + 1,
+      createdAt: serverTimestamp(),
+    });
+  });
+  await batch.commit();
+}
+
+/**
  * Renombra la sección y propaga el cambio a todas las partidas cuyo
  * campo `city` coincide con el nombre antiguo. Atómico via writeBatch.
  */

@@ -74,6 +74,7 @@ export default function ParticipationForm({
       const tripItemId = data.tripItemId || null;
       const tripItem = tripItemId ? tripItems.find((t) => t.id === tripItemId) : null;
       const amount = data.amount && data.amount > 0 ? Number(data.amount) : null;
+      const amountPrivate = amount ? Boolean(data.amountPrivate) : false;
       const message = data.message?.trim() || null;
 
       // 2. Crea contribution + messageWall (atómico via la función)
@@ -85,6 +86,7 @@ export default function ParticipationForm({
         photoStoragePath,
         tripItemId,
         amount,
+        amountPrivate,
       });
 
       // 3. Dispara emails
@@ -207,6 +209,18 @@ export default function ParticipationForm({
           error={errors.amount}
           suggestedAmount={lockedItem?.targetAmount ?? null}
         />
+
+        {/* Privacidad del importe — Mariángeles ve nombre y mensaje, no el monto */}
+        <label className={styles.checkboxField}>
+          <input
+            type="checkbox"
+            className={styles.checkbox}
+            {...register('amountPrivate')}
+          />
+          <span className={styles.checkboxText}>
+            {copy.form.fields.amountPrivate}
+          </span>
+        </label>
       </div>
 
       {submitError && <p className={styles.submitError}>{submitError}</p>}

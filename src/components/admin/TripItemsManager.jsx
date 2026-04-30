@@ -32,6 +32,7 @@ import {
   deleteSectionAndItems,
   deleteSectionMoveToUnassigned,
   batchUpdateSectionOrders,
+  seedSections,
 } from '../../firebase/sections.js';
 import { formatCurrency, percent } from '../../utils/formatCurrency.js';
 import { CITY_OPTIONS } from '../../content/tripCities.js';
@@ -57,7 +58,7 @@ export default function TripItemsManager() {
   const [pendingDelete, setPendingDelete] = useState(null);
   const [activeDragId, setActiveDragId] = useState(null);
 
-  const reportError = (label, err) => {
+  const reportError = async (label, err) => {
     const u = auth.currentUser;
     console.error(`[admin partidas] ${label}:`, err);
     console.error('[admin partidas] auth state:', {
@@ -65,6 +66,17 @@ export default function TripItemsManager() {
       email: u?.email,
       emailVerified: u?.emailVerified,
     });
+    // Loguea los claims reales del ID token. Las reglas evalúan
+    // request.auth.token.email — que viene de aquí, no de currentUser.email.
+    if (u) {
+      try {
+        const result = await u.getIdTokenResult();
+        console.error('[admin partidas] token claims:', result.claims);
+        console.error('[admin partidas] token issued at:', result.issuedAtTime);
+      } catch (e) {
+        console.error('[admin partidas] no se pudieron leer claims del token:', e);
+      }
+    }
     const code = err?.code || err?.message || 'fallo desconocido';
     const who = u?.email
       ? `email Firebase = ${u.email}`
@@ -92,9 +104,7 @@ export default function TripItemsManager() {
     (async () => {
       try {
         await ensureFreshToken();
-        await Promise.all(
-          CITY_OPTIONS.map((name, idx) => createSection({ name, order: idx + 1 }))
-        );
+        await seedSections(CITY_OPTIONS);
       } catch (err) {
         seededRef.current = false;
         reportError('Sembrar secciones automático', err);
@@ -107,9 +117,7 @@ export default function TripItemsManager() {
     setBusy(true);
     try {
       await ensureFreshToken();
-      await Promise.all(
-        CITY_OPTIONS.map((name, idx) => createSection({ name, order: idx + 1 }))
-      );
+      await seedSections(CITY_OPTIONS);
     } catch (err) {
       reportError('Sembrar secciones', err);
     } finally {
