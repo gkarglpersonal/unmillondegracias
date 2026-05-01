@@ -11,8 +11,9 @@ instrucciones para hacer.
 
 | Documento | Estado | Resumen |
 |---|---|---|
-| [Fase 2 — kickoff autónomo](./fase-2-kickoff.md) | 📋 Listo para pegar | Wrapper de arranque que se pega tal cual en una sesión nueva: hace setup git, da permisos amplios y delega al runbook técnico. |
-| [Fase 2 — runbook técnico](./fase-2-importantes-menores.md) | 📋 Listo para ejecutar | Especificación: 12 importantes + 7 menores + 3 bugs colaterales de QAs de fase 1. |
+| [Fase 3 — diferidos de fase 2](./fase-3-deferidos.md) | 📋 Listo para ejecutar | 8 puntos que la fase 2 dejó por límite de tiempo: paginación admin, rules FK + rate limit, RGPD checkbox, photos rechazo trifásico, errores submit específicos, FormModal block mid-submit, conteo real en hard delete. |
+| [Fase 2 — kickoff autónomo](./fase-2-kickoff.md) | ✅ Ejecutado 2026-05-01 | Wrapper de arranque. Resultado: ver [audit fase 2](../audits/2026-05-01-fase-2-mejoras.md). |
+| [Fase 2 — runbook técnico](./fase-2-importantes-menores.md) | ✅ Ejecutado 2026-05-01 | Especificación de los 22 puntos. 14/22 cerrados; los 8 restantes pasaron a fase 3. |
 
 ## Cómo usar
 
