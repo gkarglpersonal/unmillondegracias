@@ -76,6 +76,12 @@ export default function PhotosModeration() {
     [filter, pending, approved]
   );
 
+  // Devuelve un detalle leíble del error: code de Firebase si existe,
+  // mensaje en su defecto. Para depurar fallos en producción donde el
+  // admin no tiene la consola abierta.
+  const errDetail = (err) =>
+    err?.code || err?.message || (typeof err === 'string' ? err : 'desconocido');
+
   const handleApprove = async (id) => {
     setBusyId(id);
     setActionError(null);
@@ -83,7 +89,7 @@ export default function PhotosModeration() {
       await approvePhoto(id);
     } catch (err) {
       console.error('approvePhoto:', err);
-      setActionError('No se pudo aprobar la foto. Vuelve a intentarlo.');
+      setActionError(`No se pudo aprobar la foto: ${errDetail(err)}`);
     } finally {
       setBusyId(null);
     }
@@ -97,7 +103,7 @@ export default function PhotosModeration() {
       await unapprovePhoto(id);
     } catch (err) {
       console.error('unapprovePhoto:', err);
-      setActionError('No se pudo quitar la aprobación. Vuelve a intentarlo.');
+      setActionError(`No se pudo quitar la aprobación: ${errDetail(err)}`);
     } finally {
       setBusyId(null);
     }
@@ -111,7 +117,7 @@ export default function PhotosModeration() {
       await rejectPhoto(item.id);
     } catch (err) {
       console.error('rejectPhoto:', err);
-      setActionError('No se pudo rechazar la foto. Vuelve a intentarlo.');
+      setActionError(`No se pudo rechazar la foto: ${errDetail(err)}`);
     } finally {
       setBusyId(null);
     }

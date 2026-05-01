@@ -17,6 +17,7 @@ import {
   movePhotoToApproved,
   movePhotoToPending,
   deletePhotoByPath,
+  getStorageDownloadUrl,
 } from './storage.js';
 
 const COL = 'messageWall';
@@ -171,8 +172,8 @@ export const deleteMessage = (id) => deleteDoc(doc(db, COL, id));
  * sin hacer nada.
  */
 export async function approvePhoto(messageId) {
-  const ref = doc(db, COL, messageId);
-  const snap = await getDoc(ref);
+  const docRef = doc(db, COL, messageId);
+  const snap = await getDoc(docRef);
   if (!snap.exists()) {
     throw new Error('Mensaje no encontrado.');
   }
@@ -186,6 +187,18 @@ export async function approvePhoto(messageId) {
     throw new Error('Esta entrada no tiene foto para aprobar.');
   }
 
+  // Recovery: si el doc todavía dice photoApproved=false pero el path
+  // ya está en approved/, es que un intento previo movió el blob pero
+  // el updateDoc falló. Sincronizamos el doc sin re-mover.
+  if (data.photoStoragePath.startsWith('photos/approved/')) {
+    const publicUrl = await getStorageDownloadUrl(data.photoStoragePath);
+    await updateDoc(docRef, {
+      photoUrl: publicUrl,
+      photoApproved: true,
+    });
+    return { newStoragePath: data.photoStoragePath, publicUrl };
+  }
+
   // Defensa en profundidad: solo aprobamos fotos que provengan de
   // `photos/pending/`. Si por bug, migración inconsistente o
   // manipulación externa el doc apuntara a otra ruta, abortamos
@@ -196,17 +209,38 @@ export async function approvePhoto(messageId) {
     );
   }
 
-  const { newStoragePath, publicUrl } = await movePhotoToApproved(
-    data.photoStoragePath
-  );
+  // Intento normal: mover el blob de pending/ a approved/.
+  let moveResult;
+  try {
+    moveResult = await movePhotoToApproved(data.photoStoragePath);
+  } catch (moveErr) {
+    // Recovery extra: el move falló (ej: object-not-found en pending),
+    // posiblemente porque un intento previo lo movió pero updateDoc
+    // falló dejando el doc apuntando a pending/. Si el blob existe en
+    // approved/ con el mismo nombre, asumimos que es ese mismo y
+    // sincronizamos en lugar de fallar.
+    const fileName = data.photoStoragePath.split('/').pop();
+    const probablePath = `photos/approved/${fileName}`;
+    try {
+      const publicUrl = await getStorageDownloadUrl(probablePath);
+      moveResult = { newStoragePath: probablePath, publicUrl };
+      console.warn(
+        'approvePhoto: blob ya estaba en approved/ tras un intento previo fallido. Sincronizando doc.',
+        { messageId, probablePath }
+      );
+    } catch {
+      // No está en approved/ tampoco: el error original es la causa real.
+      throw moveErr;
+    }
+  }
 
-  await updateDoc(ref, {
-    photoStoragePath: newStoragePath,
-    photoUrl: publicUrl,
+  await updateDoc(docRef, {
+    photoStoragePath: moveResult.newStoragePath,
+    photoUrl: moveResult.publicUrl,
     photoApproved: true,
   });
 
-  return { newStoragePath, publicUrl };
+  return moveResult;
 }
 
 /**

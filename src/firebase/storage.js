@@ -2,33 +2,51 @@ import {
   ref,
   uploadBytes,
   getDownloadURL,
+  getBlob,
   deleteObject,
 } from 'firebase/storage';
 import { storage } from './config.js';
 
 /**
- * Descarga el blob de un objeto de Storage usando getDownloadURL + fetch.
+ * Descarga un blob desde Storage probando dos estrategias en orden:
  *
- * Por qué no `getBlob` del SDK: getBlob hace XHR directo al endpoint REST
- * del bucket, lo que requiere que el bucket tenga CORS configurado para
- * el origen que llama. En despliegues con dominio custom (GitHub Pages +
- * CNAME) sin CORS configurado, getBlob queda esperando indefinidamente
- * en algunos navegadores en lugar de fallar limpio — ese era el síntoma
- * "Aprobando…" colgado en /admin → Fotos.
+ *  1. Preferida: getDownloadURL + fetch. La URL incluye un media token
+ *     y se sirve desde el endpoint público de Firebase Storage; el
+ *     token actúa como auth y la respuesta lleva CORS abierto, así
+ *     que fetch funciona desde cualquier origen sin configurar el
+ *     bucket.
+ *  2. Fallback: getBlob del SDK. XHR directo al bucket, requiere
+ *     CORS pero algunos navegadores con extensiones que bloquean
+ *     fetch en third-party permiten el XHR del SDK.
  *
- * Las URLs que devuelve getDownloadURL incluyen un media token; sirven
- * desde un endpoint configurado con CORS abierto, así que `fetch` sobre
- * ellas funciona desde cualquier origen sin configurar el bucket.
+ * Si ambas fallan, propaga un Error compuesto con el detalle de las
+ * dos rutas, que el caller surface a la UI admin.
  */
 async function downloadBlobByPath(srcRef) {
-  const url = await getDownloadURL(srcRef);
-  const response = await fetch(url);
-  if (!response.ok) {
+  // Intento 1: getDownloadURL + fetch
+  let urlAttemptError = null;
+  try {
+    const url = await getDownloadURL(srcRef);
+    try {
+      const response = await fetch(url);
+      if (response.ok) return await response.blob();
+      urlAttemptError = `fetch HTTP ${response.status}`;
+    } catch (fetchErr) {
+      urlAttemptError = `fetch: ${fetchErr?.message || fetchErr}`;
+    }
+  } catch (urlErr) {
+    urlAttemptError = `getDownloadURL: ${urlErr?.code || urlErr?.message || urlErr}`;
+  }
+
+  // Intento 2: SDK getBlob
+  try {
+    return await getBlob(srcRef);
+  } catch (sdkErr) {
+    const sdkDetail = sdkErr?.code || sdkErr?.message || String(sdkErr);
     throw new Error(
-      `No se pudo descargar la foto desde Storage (HTTP ${response.status}).`
+      `descarga falló — URL: ${urlAttemptError}; SDK getBlob: ${sdkDetail}`
     );
   }
-  return response.blob();
 }
 
 /**
@@ -108,13 +126,31 @@ export async function movePhotoToApproved(currentStoragePath) {
   const dstRef = ref(storage, newStoragePath);
 
   // 1. Descargar blob desde el path origen (admin tiene permiso de read).
-  const blob = await downloadBlobByPath(srcRef);
+  let blob;
+  try {
+    blob = await downloadBlobByPath(srcRef);
+  } catch (err) {
+    throw new Error(`[descargar pending] ${err?.message || err}`);
+  }
 
-  // 2. Subir al destino approved/.
-  await uploadBytes(dstRef, blob, { contentType: blob.type || undefined });
+  // 2. Subir al destino approved/. Pasamos un content-type explícito;
+  // si el blob viene de fetch sin Content-Type, el SDK lo guardaría como
+  // application/octet-stream y los <img> de la galería no lo renderizan.
+  try {
+    await uploadBytes(dstRef, blob, {
+      contentType: blob.type || 'image/jpeg',
+    });
+  } catch (err) {
+    throw new Error(`[subir approved] ${err?.code || err?.message || err}`);
+  }
 
   // 3. Obtener URL pública del destino.
-  const publicUrl = await getDownloadURL(dstRef);
+  let publicUrl;
+  try {
+    publicUrl = await getDownloadURL(dstRef);
+  } catch (err) {
+    throw new Error(`[URL aprobada] ${err?.code || err?.message || err}`);
+  }
 
   // 4. Borrar el origen. Si falla, lo dejamos (el doc ya apunta al nuevo
   //    path); el admin puede limpiarlo después manualmente.
@@ -172,11 +208,22 @@ export async function movePhotoToPending(currentApprovedPath) {
   const dstRef = ref(storage, newStoragePath);
 
   // 1. Descargar blob desde approved/ (admin tiene permiso de read).
-  const blob = await downloadBlobByPath(srcRef);
+  let blob;
+  try {
+    blob = await downloadBlobByPath(srcRef);
+  } catch (err) {
+    throw new Error(`[descargar approved] ${err?.message || err}`);
+  }
 
   // 2. Subir al destino pending/. Si esto falla, propagamos el error y
   //    el estado queda como estaba (nada movido).
-  await uploadBytes(dstRef, blob, { contentType: blob.type || undefined });
+  try {
+    await uploadBytes(dstRef, blob, {
+      contentType: blob.type || 'image/jpeg',
+    });
+  } catch (err) {
+    throw new Error(`[subir pending] ${err?.code || err?.message || err}`);
+  }
 
   // 3. Borrar el origen. Si falla, lo dejamos: el blob duplicado en
   //    pending/ es privado, y el doc apuntará al nuevo path. Lo peor
@@ -205,6 +252,19 @@ export async function deletePhotoByPath(storagePath) {
   } catch (err) {
     console.warn('deletePhotoByPath:', storagePath, err?.code || err?.message);
   }
+}
+
+/**
+ * Versión que propaga el error subyacente (a diferencia de
+ * `getAdminPhotoUrl`, que silencia con null). Se usa en flujos de
+ * recovery donde el caller necesita distinguir "blob existe y se
+ * puede leer" de "blob no existe / permiso denegado".
+ */
+export async function getStorageDownloadUrl(storagePath) {
+  if (!storagePath) {
+    throw new Error('getStorageDownloadUrl: storagePath vacío.');
+  }
+  return getDownloadURL(ref(storage, storagePath));
 }
 
 /**
