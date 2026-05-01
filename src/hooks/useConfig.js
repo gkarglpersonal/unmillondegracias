@@ -10,7 +10,15 @@ export function useConfig() {
     const unsub = onSnapshot(
       doc(db, 'config', 'general'),
       (snap) => {
-        setConfig(snap.exists() ? snap.data() : null);
+        if (snap.exists()) {
+          setConfig(snap.data());
+        } else {
+          setConfig(null);
+          console.warn(
+            'useConfig: config/general no existe en Firestore. ' +
+              'Si eres admin, entra a /admin para auto-crearlo, o ejecuta el seed script.'
+          );
+        }
         setLoading(false);
       },
       (err) => {
