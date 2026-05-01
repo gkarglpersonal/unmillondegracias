@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { copy } from '../../content/copy.js';
 import styles from './SuccessOverlay.module.css';
 
@@ -16,6 +17,17 @@ import styles from './SuccessOverlay.module.css';
 export default function SuccessOverlay({ data, onClose }) {
   const heading = data?.name ? `¡Gracias, ${data.name.split(' ')[0]}!` : copy.form.successTitle;
   const warning = data?.warning || null;
+
+  // Body-lock mientras el overlay está montado: bloqueamos el scroll del
+  // body para que el usuario no pueda ignorar el éxito haciendo scroll.
+  // Restauramos al desmontar.
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, []);
 
   return (
     <div className={styles.wrap} role="status" aria-live="polite">

@@ -5,6 +5,7 @@ const FormCtx = createContext({
   openForm: () => {},
   closeForm: () => {},
   sidebarLockedTripItemId: null,
+  isModalOpen: false,
 });
 
 const DESKTOP_BREAKPOINT = 1024;
@@ -43,7 +44,7 @@ export function FormProvider({ children }) {
   };
 
   return (
-    <FormCtx.Provider value={{ openForm, closeForm, sidebarLockedTripItemId }}>
+    <FormCtx.Provider value={{ openForm, closeForm, sidebarLockedTripItemId, isModalOpen: open }}>
       {children}
       <FormModal
         open={open}

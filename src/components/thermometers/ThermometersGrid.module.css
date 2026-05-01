@@ -235,13 +235,23 @@
 .carouselTrack::-webkit-scrollbar { display: none; }
 
 .carouselSlide {
-  flex: 0 0 calc(100vw - 48px);
+  /* 100dvw evita el overflow horizontal en navegadores que cuentan el
+   * scrollbar dentro de 100vw (Windows, Chrome desktop). */
+  flex: 0 0 calc(100dvw - 48px);
   scroll-snap-align: start;
   scroll-snap-stop: always;
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
   box-sizing: border-box;
+}
+
+/* Ajuste para tablets 768-899 px: que cada slide quepa con un peek visible
+ * del siguiente (ancho ~60% del viewport en lugar de casi 100%). */
+@media (min-width: 768px) and (max-width: 899px) {
+  .carouselSlide {
+    flex: 0 0 calc(60dvw - 24px);
+  }
 }
 
 .slideCityHeader {

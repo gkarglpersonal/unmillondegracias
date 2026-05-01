@@ -25,7 +25,10 @@
     position: sticky;
     top: 0;
     align-self: start;
-    height: 100vh;
+    /* 100dvh respeta la barra del navegador en laptops 13" y mobile, evitando
+     * que el form + SuccessOverlay queden cortados. overflow-y: auto sigue
+     * gestionando contenido más alto que la ventana. */
+    height: 100dvh;
     background: var(--bg-sidebar);
     color: var(--text-on-dark);
     overflow-y: auto;

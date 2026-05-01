@@ -11,7 +11,7 @@ import styles from './TripItemPicker.module.css';
  * partida), no muestra picker — solo confirma visualmente la elección.
  */
 export default function TripItemPicker({ value, onChange, variant = 'auto', lockedItem = null }) {
-  const { items } = useTripItems();
+  const { items, loading } = useTripItems();
 
   if (lockedItem) {
     return (
@@ -34,8 +34,12 @@ export default function TripItemPicker({ value, onChange, variant = 'auto', lock
         className={`${styles.dropdown} ${variant === 'tags' ? styles.dropdownHidden : ''}`}
         value={value || ''}
         onChange={(e) => onChange(e.target.value)}
+        disabled={loading}
+        aria-busy={loading || undefined}
       >
-        <option value="">{copy.form.fields.tripItemDefault}</option>
+        <option value="">
+          {loading ? 'Cargando partidas…' : copy.form.fields.tripItemDefault}
+        </option>
         {items.map((item) => (
           <option key={item.id} value={item.id}>
             {item.name}
@@ -48,6 +52,7 @@ export default function TripItemPicker({ value, onChange, variant = 'auto', lock
         className={`${styles.tags} ${variant === 'dropdown' ? styles.tagsHidden : ''}`}
         role="radiogroup"
         aria-label={copy.form.fields.tripItem}
+        aria-busy={loading || undefined}
       >
         <button
           type="button"
@@ -58,6 +63,11 @@ export default function TripItemPicker({ value, onChange, variant = 'auto', lock
         >
           Sin preferencia
         </button>
+        {loading && items.length === 0 && (
+          <span className={styles.tag} aria-hidden="true" style={{ opacity: 0.6 }}>
+            Cargando…
+          </span>
+        )}
         {items.map((item) => (
           <button
             key={item.id}

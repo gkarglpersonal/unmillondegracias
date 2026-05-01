@@ -9,7 +9,10 @@
 
 .number {
   font-family: var(--font-display);
-  font-size: clamp(48px, 7vw, 80px);
+  /* Antes clamp(48px, 7vw, 80px) generaba un escalón en ~686 px (donde 7vw
+   * iguala al min) y por debajo quedaba clavado a 48 px en todo 500-686.
+   * Reformulado a vw + offset fijo para crecer continuamente desde 500 px. */
+  font-size: clamp(48px, calc(4vw + 24px), 80px);
   font-weight: var(--fw-bold);
   line-height: 1;
   letter-spacing: -0.02em;

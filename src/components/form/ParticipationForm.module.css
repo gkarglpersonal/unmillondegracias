@@ -58,6 +58,14 @@
   transition: border-color var(--transition-fast), border-width var(--transition-fast);
 }
 
+/* iOS Safari hace zoom al hacer focus si font-size < 16px. Garantizar 16 px
+ * mínimo en mobile evita ese salto. En desktop mantenemos --fs-body-lg. */
+@media (max-width: 767px) {
+  .fields :is(input, textarea, select) {
+    font-size: 16px;
+  }
+}
+
 .fields :is(input, textarea, select):focus {
   outline: none;
   border-bottom-color: var(--honey);
@@ -144,6 +152,20 @@
   font-size: var(--fs-body);
   line-height: 1.55;
   white-space: pre-wrap;
+}
+
+/* En mobile portrait reducimos un pelín; en mobile landscape el aplastamiento
+ * del viewport hace que 220 px ocupe casi toda la altura. Cap a 140 px allí. */
+@media (max-width: 767px) {
+  .fields textarea {
+    min-height: 160px;
+  }
+}
+
+@media (max-width: 920px) and (orientation: landscape) and (max-height: 520px) {
+  .fields textarea {
+    min-height: 120px;
+  }
 }
 
 .fields textarea::placeholder {

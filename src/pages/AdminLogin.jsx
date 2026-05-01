@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.jsx';
+import { ensureConfigGeneral } from '../firebase/config.js';
 
 export default function AdminLogin() {
   const { user, signIn, loading } = useAuth();
@@ -19,6 +20,9 @@ export default function AdminLogin() {
     setBusy(true);
     try {
       await signIn(email, password);
+      ensureConfigGeneral().then(({ created }) => {
+        if (created) console.info('config/general bootstrap creado con defaults');
+      });
       navigate('/admin', { replace: true });
     } catch (err) {
       setError('Credenciales incorrectas.');

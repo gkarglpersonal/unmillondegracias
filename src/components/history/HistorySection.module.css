@@ -75,11 +75,20 @@
   .timeline::-webkit-scrollbar { display: none; }
 
   .timelineSlide {
-    flex: 0 0 calc(100vw - 48px);
+    /* 100dvw evita overflow horizontal en navegadores con scrollbar contado
+     * dentro de 100vw. */
+    flex: 0 0 calc(100dvw - 48px);
     scroll-snap-align: start;
     scroll-snap-stop: always;
     box-sizing: border-box;
     display: block;
+  }
+}
+
+/* Tablets 768-899 px: peek del siguiente slide en lugar de casi-pantalla. */
+@media (min-width: 768px) and (max-width: 899px) {
+  .timelineSlide {
+    flex: 0 0 calc(60dvw - 24px);
   }
 }
 

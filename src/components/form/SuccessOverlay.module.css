@@ -1,12 +1,16 @@
 .wrap {
-  position: absolute;
+  /* Antes era absolute dentro de su parent (sidebar en desktop o modal en
+   * mobile). En desktop el sidebar es estrecho y el overlay se podía perder
+   * de vista. Ahora cubre todo el viewport con z-index global, igual en
+   * ambos contextos. */
+  position: fixed;
   inset: 0;
   background: rgba(28, 28, 30, 0.78);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: var(--space-5);
-  z-index: 2;
+  z-index: 1000;
   animation: fadeIn 240ms var(--ease-out);
   backdrop-filter: blur(4px);
 }
