@@ -32,6 +32,9 @@ service cloud.firestore {
     match /messageWall/{messageId} {
       allow read: if true;
 
+      // Privacidad: el cliente NUNCA puede crear un doc con photoUrl
+      // poblado. Solo admin lo asigna al aprobar la foto (entonces el
+      // blob se ha movido a photos/approved/, que es público).
       allow create: if
         request.resource.data.keys().hasAll(['name', 'createdAt', 'photoApproved', 'messageHidden', 'paid'])
         && request.resource.data.name is string
@@ -40,7 +43,12 @@ service cloud.firestore {
         && (request.resource.data.message == null || (request.resource.data.message is string && request.resource.data.message.size() <= 2000))
         && request.resource.data.photoApproved == false
         && request.resource.data.messageHidden == false
-        && request.resource.data.paid == false;
+        && request.resource.data.paid == false
+        && (!('photoUrl' in request.resource.data) || request.resource.data.photoUrl == null)
+        && (!('photoStoragePath' in request.resource.data)
+            || request.resource.data.photoStoragePath == null
+            || (request.resource.data.photoStoragePath is string
+                && request.resource.data.photoStoragePath.matches('^photos/pending/.*')));
 
       allow update, delete: if isAdmin();
     }

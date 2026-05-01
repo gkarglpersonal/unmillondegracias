@@ -166,6 +166,62 @@
 .deleteBtn:hover { text-decoration: underline; }
 .deleteBtn:disabled { opacity: 0.5; cursor: not-allowed; }
 
+.editBtn {
+  font-size: var(--fs-body-sm);
+  font-weight: var(--fw-medium);
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: var(--space-2);
+}
+.editBtn:hover { text-decoration: underline; color: var(--text-body); }
+.editBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.editBox {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  background: var(--color-alpine-50);
+  border: 1px solid var(--color-alpine-300);
+  border-radius: var(--radius-md);
+  min-width: 220px;
+}
+
+.editLabel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  font-size: var(--fs-caption);
+  font-weight: var(--fw-semibold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.editInput {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: var(--fw-bold);
+  padding: var(--space-2);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--color-white);
+}
+
+.editError {
+  margin: 0;
+  font-size: var(--fs-body-sm);
+  color: var(--color-error);
+}
+
+.editActions {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
 .empty {
   font-style: italic;
   color: var(--text-muted);

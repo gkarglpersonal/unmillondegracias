@@ -52,3 +52,19 @@
   margin: 0;
   line-height: var(--lh-relaxed);
 }
+
+/* Aviso honesto cuando la contribución se ha guardado correctamente
+ * pero alguna notificación por email ha fallado. Discreto pero visible:
+ * borde ámbar cálido, sin alarma, sin tipografía agresiva. */
+.warning {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  background: rgba(212, 158, 71, 0.10);
+  border: 1px solid rgba(212, 158, 71, 0.35);
+  border-radius: var(--radius-md);
+  color: var(--text-body);
+  font-size: var(--fs-body-sm);
+  line-height: var(--lh-relaxed);
+  text-align: left;
+  width: 100%;
+}

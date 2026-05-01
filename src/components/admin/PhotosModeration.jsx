@@ -1,11 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   subscribePendingPhotos,
   subscribeApprovedPhotos,
-  setPhotoApproved,
-  deleteMessage,
+  approvePhoto,
+  unapprovePhoto,
+  rejectPhoto,
 } from '../../firebase/messageWall.js';
-import { deletePhoto } from '../../firebase/storage.js';
+import { getAdminPhotoUrl } from '../../firebase/storage.js';
 import { relativeTime } from '../../utils/formatDate.js';
 import styles from './PhotosModeration.module.css';
 
@@ -14,12 +15,47 @@ const FILTERS = [
   { id: 'approved', label: 'Aprobadas' },
 ];
 
+/**
+ * Cuando una foto está pendiente, vive en `photos/pending/...` y solo el
+ * admin puede leerla. Como no hay URL pública, el componente pide una
+ * URL temporal con token vía `getDownloadURL` (que respeta las reglas de
+ * Storage). Las fotos aprobadas usan directamente `photoUrl` del doc.
+ */
+function PendingPhotoImg({ storagePath, alt }) {
+  const [url, setUrl] = useState(null);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    setUrl(null);
+    setError(false);
+    if (!storagePath) return undefined;
+    getAdminPhotoUrl(storagePath).then((u) => {
+      if (cancelled) return;
+      if (u) setUrl(u);
+      else setError(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [storagePath]);
+
+  if (error) {
+    return <div className={styles.imgFallback}>Sin previsualización</div>;
+  }
+  if (!url) {
+    return <div className={styles.imgFallback}>Cargando…</div>;
+  }
+  return <img src={url} alt={alt} className={styles.img} />;
+}
+
 export default function PhotosModeration() {
   const [pending, setPending] = useState([]);
   const [approved, setApproved] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('pending');
   const [busyId, setBusyId] = useState(null);
+  const [actionError, setActionError] = useState(null);
 
   useEffect(() => {
     const unsubP = subscribePendingPhotos((d) => {
@@ -35,26 +71,50 @@ export default function PhotosModeration() {
     };
   }, []);
 
-  const items = filter === 'pending' ? pending : approved;
+  const items = useMemo(
+    () => (filter === 'pending' ? pending : approved),
+    [filter, pending, approved]
+  );
 
   const handleApprove = async (id) => {
     setBusyId(id);
-    try { await setPhotoApproved(id, true); } finally { setBusyId(null); }
+    setActionError(null);
+    try {
+      await approvePhoto(id);
+    } catch (err) {
+      console.error('approvePhoto:', err);
+      setActionError('No se pudo aprobar la foto. Vuelve a intentarlo.');
+    } finally {
+      setBusyId(null);
+    }
   };
 
   const handleUnapprove = async (id) => {
     if (!confirm('¿Quitar la aprobación? La foto desaparecerá de la galería.')) return;
     setBusyId(id);
-    try { await setPhotoApproved(id, false); } finally { setBusyId(null); }
+    setActionError(null);
+    try {
+      await unapprovePhoto(id);
+    } catch (err) {
+      console.error('unapprovePhoto:', err);
+      setActionError('No se pudo quitar la aprobación. Vuelve a intentarlo.');
+    } finally {
+      setBusyId(null);
+    }
   };
 
   const handleReject = async (item) => {
     if (!confirm('¿Borrar esta foto del todo? El mensaje (si lo hay) también se elimina.')) return;
     setBusyId(item.id);
+    setActionError(null);
     try {
-      if (item.photoStoragePath) await deletePhoto(item.photoStoragePath);
-      await deleteMessage(item.id);
-    } finally { setBusyId(null); }
+      await rejectPhoto(item.id);
+    } catch (err) {
+      console.error('rejectPhoto:', err);
+      setActionError('No se pudo rechazar la foto. Vuelve a intentarlo.');
+    } finally {
+      setBusyId(null);
+    }
   };
 
   return (
@@ -78,6 +138,8 @@ export default function PhotosModeration() {
         </div>
       </header>
 
+      {actionError && <p className={styles.actionError}>{actionError}</p>}
+
       {loading ? (
         <p className={styles.empty}>Cargando…</p>
       ) : items.length === 0 ? (
@@ -89,7 +151,14 @@ export default function PhotosModeration() {
           {items.map((p) => (
             <li key={p.id} className={styles.card}>
               <div className={styles.imgWrap}>
-                <img src={p.photoUrl} alt={`Foto de ${p.name}`} className={styles.img} />
+                {filter === 'pending' ? (
+                  <PendingPhotoImg
+                    storagePath={p.photoStoragePath}
+                    alt={`Foto de ${p.name}`}
+                  />
+                ) : (
+                  <img src={p.photoUrl} alt={`Foto de ${p.name}`} className={styles.img} />
+                )}
               </div>
               <div className={styles.body}>
                 <div className={styles.meta}>
@@ -105,7 +174,7 @@ export default function PhotosModeration() {
                         disabled={busyId === p.id}
                         onClick={() => handleApprove(p.id)}
                       >
-                        Aprobar
+                        {busyId === p.id ? 'Aprobando…' : 'Aprobar'}
                       </button>
                       <button
                         type="button"

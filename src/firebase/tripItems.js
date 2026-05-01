@@ -10,10 +10,16 @@ import {
   deleteDoc,
   serverTimestamp,
   writeBatch,
+  where,
 } from 'firebase/firestore';
 import { db } from './config.js';
 
 const COL = 'tripItems';
+const MESSAGE_WALL_COL = 'messageWall';
+const CONTRIBUTIONS_COL = 'contributions';
+
+// Firestore limita un writeBatch a 500 operaciones. Dejamos margen.
+const BATCH_LIMIT = 450;
 
 function onListenerError(err) {
   if (err?.code !== 'permission-denied') {
@@ -42,6 +48,15 @@ export async function fetchTripItems({ onlyActive = true } = {}) {
   return onlyActive ? items.filter((i) => i.active !== false) : items;
 }
 
+/**
+ * Equivalente puntual a `fetchTripItems`, expuesto como `listTripItems`
+ * por simetría con el contrato acordado: nombre más explícito y opción
+ * `includeArchived` para distinguir UI pública vs admin.
+ */
+export async function listTripItems({ includeArchived = false } = {}) {
+  return fetchTripItems({ onlyActive: !includeArchived });
+}
+
 export async function createTripItem(data) {
   const id = data.id || doc(collection(db, COL)).id;
   await setDoc(doc(db, COL, id), {
@@ -62,8 +77,79 @@ export async function updateTripItem(id, patch) {
   await updateDoc(doc(db, COL, id), patch);
 }
 
+/**
+ * Soft delete: marca la partida como `active: false`.
+ * La partida desaparece de la UI pública (filtrada por `active !== false`)
+ * pero todas las contribuciones que la referencian siguen vinculadas: no
+ * se rompe la integridad ni la UI de moderación. Idempotente.
+ */
+export async function archiveTripItem(id) {
+  await updateDoc(doc(db, COL, id), { active: false });
+}
+
+/**
+ * Reactiva una partida soft-deleted. Idempotente.
+ */
+export async function unarchiveTripItem(id) {
+  await updateDoc(doc(db, COL, id), { active: true });
+}
+
+/**
+ * Soft delete por defecto (alias semántico). Mantiene retro-compatibilidad
+ * con los call sites antiguos: `deleteTripItem(id)` ya NO destruye datos,
+ * solo archiva. Para borrado destructivo usa `hardDeleteTripItem`.
+ */
 export async function deleteTripItem(id) {
+  return archiveTripItem(id);
+}
+
+/**
+ * Hard delete con reasignación segura.
+ *
+ * Pasos:
+ *  1. Si `reassignToNull` (por defecto), busca todos los `messageWall` y
+ *     `contributions` que apuntan a la partida y los actualiza a
+ *     `tripItemId: null` (queda como "fondo general"). Se hace en batches
+ *     de hasta 450 escrituras para respetar el límite de Firestore.
+ *  2. Borra el documento de la partida.
+ *
+ * Devuelve el número de documentos reasignados (suma de ambas colecciones)
+ * para que la UI pueda mostrar feedback claro al admin.
+ */
+export async function hardDeleteTripItem(id, { reassignToNull = true } = {}) {
+  if (!id) throw new Error('hardDeleteTripItem: falta el id de la partida.');
+
+  let reassignedCount = 0;
+
+  if (reassignToNull) {
+    const [wallSnap, contribSnap] = await Promise.all([
+      getDocs(query(collection(db, MESSAGE_WALL_COL), where('tripItemId', '==', id))),
+      getDocs(query(collection(db, CONTRIBUTIONS_COL), where('tripItemId', '==', id))),
+    ]);
+
+    const refs = [
+      ...wallSnap.docs.map((d) => d.ref),
+      ...contribSnap.docs.map((d) => d.ref),
+    ];
+
+    // Trocea en batches por debajo del límite de Firestore.
+    for (let i = 0; i < refs.length; i += BATCH_LIMIT) {
+      const slice = refs.slice(i, i + BATCH_LIMIT);
+      const batch = writeBatch(db);
+      for (const ref of slice) batch.update(ref, { tripItemId: null });
+      await batch.commit();
+    }
+
+    reassignedCount = refs.length;
+  }
+
+  // Borrado del documento en una operación final, una vez que las
+  // referencias ya no son huérfanas. Si esto fallara tras la reasignación,
+  // las contribuciones simplemente quedarían en "fondo general", que es
+  // un estado consistente y reversible manualmente.
   await deleteDoc(doc(db, COL, id));
+
+  return { reassignedCount };
 }
 
 /**
