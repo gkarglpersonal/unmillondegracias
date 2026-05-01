@@ -60,10 +60,12 @@
 
 .image {
   width: 100%;
-  /* aspect-ratio evita CLS y mantiene la proporción declarativa en lugar de
-   * un alto fijo de 220 px que se ve cortado en pantallas estrechas. */
-  aspect-ratio: 4 / 3;
-  height: auto;
+  /* Altura fija de banner: la imagen actúa como cabecera horizontal
+   * compacta sobre cada ciudad, no como hero. aspect-ratio 4/3 con
+   * width 100% en .city ancho de desktop daba imágenes de 600-800 px de
+   * alto, demasiado grandes. El alto fijo + object-fit: cover preserva
+   * la prevención de CLS y la proporción banner. */
+  height: 220px;
   object-fit: cover;
   object-position: center;
   border-radius: 12px;
