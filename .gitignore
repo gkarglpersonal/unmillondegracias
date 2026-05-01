@@ -52,3 +52,6 @@ service-account.json
 # Misc
 .cache
 coverage
+
+# Contexto consolidado local (no versionar)
+CONSOLIDATED_CONTEXT.md
