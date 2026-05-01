@@ -2,10 +2,34 @@ import {
   ref,
   uploadBytes,
   getDownloadURL,
-  getBlob,
   deleteObject,
 } from 'firebase/storage';
 import { storage } from './config.js';
+
+/**
+ * Descarga el blob de un objeto de Storage usando getDownloadURL + fetch.
+ *
+ * Por qué no `getBlob` del SDK: getBlob hace XHR directo al endpoint REST
+ * del bucket, lo que requiere que el bucket tenga CORS configurado para
+ * el origen que llama. En despliegues con dominio custom (GitHub Pages +
+ * CNAME) sin CORS configurado, getBlob queda esperando indefinidamente
+ * en algunos navegadores en lugar de fallar limpio — ese era el síntoma
+ * "Aprobando…" colgado en /admin → Fotos.
+ *
+ * Las URLs que devuelve getDownloadURL incluyen un media token; sirven
+ * desde un endpoint configurado con CORS abierto, así que `fetch` sobre
+ * ellas funciona desde cualquier origen sin configurar el bucket.
+ */
+async function downloadBlobByPath(srcRef) {
+  const url = await getDownloadURL(srcRef);
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(
+      `No se pudo descargar la foto desde Storage (HTTP ${response.status}).`
+    );
+  }
+  return response.blob();
+}
 
 /**
  * Genera un id único corto, sin colisiones prácticas.
@@ -84,7 +108,7 @@ export async function movePhotoToApproved(currentStoragePath) {
   const dstRef = ref(storage, newStoragePath);
 
   // 1. Descargar blob desde el path origen (admin tiene permiso de read).
-  const blob = await getBlob(srcRef);
+  const blob = await downloadBlobByPath(srcRef);
 
   // 2. Subir al destino approved/.
   await uploadBytes(dstRef, blob, { contentType: blob.type || undefined });
@@ -148,7 +172,7 @@ export async function movePhotoToPending(currentApprovedPath) {
   const dstRef = ref(storage, newStoragePath);
 
   // 1. Descargar blob desde approved/ (admin tiene permiso de read).
-  const blob = await getBlob(srcRef);
+  const blob = await downloadBlobByPath(srcRef);
 
   // 2. Subir al destino pending/. Si esto falla, propagamos el error y
   //    el estado queda como estaba (nada movido).

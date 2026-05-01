@@ -1,10 +1,14 @@
 import { useRef, useState } from 'react';
 import { ShieldCheck } from 'lucide-react';
 import { compressImage } from '../../utils/compressImage.js';
+import { isHeic, convertHeicToJpeg } from '../../utils/convertHeic.js';
 import { copy } from '../../content/copy.js';
 import styles from './PhotoUploader.module.css';
 
 const MAX_BYTES = 8 * 1024 * 1024; // 8 MB pre-compresión
+
+const HEIC_INCOMPATIBLE_MSG =
+  'Este formato no es compatible. Por favor, sube la foto en JPG, PNG o WEBP.';
 
 export default function PhotoUploader({ value, onChange }) {
   const inputRef = useRef(null);
@@ -20,8 +24,13 @@ export default function PhotoUploader({ value, onChange }) {
 
     setErr(null);
 
-    if (!file.type.startsWith('image/')) {
-      setErr('Solo imágenes (jpg, png, webp).');
+    // En algunos browsers (Linux, ciertos Windows) HEIC llega con type
+    // vacío o "application/octet-stream". `isHeic` también mira la
+    // extensión, así que primero comprobamos ahí.
+    const heic = isHeic(file);
+
+    if (!heic && !file.type.startsWith('image/')) {
+      setErr('Solo imágenes (JPG, PNG, WEBP).');
       return;
     }
     if (file.size > MAX_BYTES) {
@@ -31,7 +40,22 @@ export default function PhotoUploader({ value, onChange }) {
 
     setBusy(true);
     try {
-      const compressed = await compressImage(file);
+      let toProcess = file;
+
+      if (heic) {
+        try {
+          toProcess = await convertHeicToJpeg(file);
+        } catch (heicErr) {
+          // Conversión HEIC falló: el navegador del usuario puede no
+          // soportar wasm o el archivo es HEIC corrupto/cifrado.
+          // Mensaje claro para que sepa qué hacer.
+          console.error('HEIC conversion failed:', heicErr);
+          setErr(HEIC_INCOMPATIBLE_MSG);
+          return;
+        }
+      }
+
+      const compressed = await compressImage(toProcess);
       const url = URL.createObjectURL(compressed);
       onChange({ file: compressed, previewUrl: url });
     } catch (e2) {
