@@ -112,7 +112,7 @@ export default function Privacy() {
           <p style={paragraphStyle}>
             Tus datos se usan exclusivamente para tres cosas: publicar tu mensaje
             y foto en esta página como parte del homenaje, coordinar tu
-            contribución al regalo con la agencia de viajes Pangea (que te
+            contribución al regalo con la agencia de viajes PANGEA (que te
             enviará el enlace de pago directamente a tu correo), y entregar a
             MªÁngeles al final la lista completa de personas que han
             participado, con sus mensajes y fotos.
