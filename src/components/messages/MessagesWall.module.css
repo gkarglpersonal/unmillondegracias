@@ -31,3 +31,57 @@
   padding-left: var(--space-4);
   background-clip: padding-box;
 }
+
+/* Fila de control para expandir el muro: centrada bajo la masonry. */
+.expandRow {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-7);
+}
+
+.expandBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-5);
+  background: transparent;
+  border: 1px solid var(--border-default);
+  border-radius: 999px;
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: var(--fs-body);
+  font-weight: var(--fw-medium);
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.expandBtn:hover {
+  background: var(--color-alpine-50, rgba(61, 82, 51, 0.04));
+  border-color: var(--text-muted);
+}
+
+.expandBtn:focus-visible {
+  outline: 2px solid var(--honey);
+  outline-offset: 2px;
+}
+
+.chevronDown,
+.chevronUp {
+  display: inline-block;
+  font-size: 0.85em;
+  line-height: 1;
+  transition: transform var(--transition-fast);
+}
+
+.chevronUp {
+  transform: rotate(180deg);
+}
+
+.hint {
+  margin: 0;
+  font-size: var(--fs-caption);
+  color: var(--text-subtle);
+  font-style: italic;
+}

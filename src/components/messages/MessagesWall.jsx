@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import Masonry from 'react-masonry-css';
 import { useVisibleMessages } from '../../hooks/useVisibleMessages.js';
 import MessageCard from './MessageCard.jsx';
@@ -9,8 +10,18 @@ const breakpointCols = {
   640: 1,
 };
 
+// Mostramos sólo unos pocos mensajes inicialmente para que el muro no
+// bloquee el scroll en mobile y el visitante llegue a la galería de
+// fotos. El resto aparece al pulsar "Ver todos los mensajes".
+const INITIAL_VISIBLE = 3;
+
 export default function MessagesWall() {
   const { items, loading } = useVisibleMessages();
+  const [expanded, setExpanded] = useState(false);
+
+  const visibleItems = expanded ? items : items.slice(0, INITIAL_VISIBLE);
+  const hiddenCount = Math.max(0, items.length - INITIAL_VISIBLE);
+  const hasMore = items.length > INITIAL_VISIBLE;
 
   return (
     <section className={`${styles.section} section`} id="muro">
@@ -27,15 +38,42 @@ export default function MessagesWall() {
           aparecerá aquí en cuanto envíes el formulario.
         </p>
       ) : (
-        <Masonry
-          breakpointCols={breakpointCols}
-          className={styles.masonry}
-          columnClassName={styles.masonryColumn}
-        >
-          {items.map((m) => (
-            <MessageCard key={m.id} message={m} />
-          ))}
-        </Masonry>
+        <>
+          <Masonry
+            breakpointCols={breakpointCols}
+            className={styles.masonry}
+            columnClassName={styles.masonryColumn}
+          >
+            {visibleItems.map((m) => (
+              <MessageCard key={m.id} message={m} />
+            ))}
+          </Masonry>
+
+          {hasMore && (
+            <div className={styles.expandRow}>
+              <button
+                type="button"
+                className={styles.expandBtn}
+                onClick={() => setExpanded((v) => !v)}
+                aria-expanded={expanded}
+                aria-controls="muro"
+              >
+                {expanded
+                  ? 'Ver menos'
+                  : `Ver todos los mensajes (${items.length})`}
+                <span aria-hidden="true" className={expanded ? styles.chevronUp : styles.chevronDown}>
+                  ▾
+                </span>
+              </button>
+              {!expanded && (
+                <p className={styles.hint}>
+                  Mostrando {INITIAL_VISIBLE} de {items.length}.{' '}
+                  {hiddenCount === 1 ? 'Hay 1 más' : `Hay ${hiddenCount} más`} sin mostrar.
+                </p>
+              )}
+            </div>
+          )}
+        </>
       )}
     </section>
   );
