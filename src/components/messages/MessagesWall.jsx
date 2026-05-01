@@ -23,7 +23,7 @@ export default function MessagesWall() {
         <p className={styles.empty}>Cargando mensajes…</p>
       ) : items.length === 0 ? (
         <p className={styles.empty}>
-          Aún no hay mensajes. Si has compartido un recuerdo de Mariángeles,
+          Aún no hay mensajes. Si has compartido un recuerdo de MªÁngeles,
           aparecerá aquí en cuanto envíes el formulario.
         </p>
       ) : (

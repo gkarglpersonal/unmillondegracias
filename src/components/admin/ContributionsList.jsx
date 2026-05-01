@@ -239,8 +239,8 @@ export default function ContributionsList() {
                       {c.amountPrivate && c.amount > 0 && (
                         <span
                           className={styles.privateIcon}
-                          title="Privado: el donante prefiere que Mariángeles no vea el importe"
-                          aria-label="Importe privado: oculto para Mariángeles"
+                          title="Privado: el donante prefiere que MªÁngeles no vea el importe"
+                          aria-label="Importe privado: oculto para MªÁngeles"
                         >
                           <Lock size={14} aria-hidden="true" />
                         </span>
