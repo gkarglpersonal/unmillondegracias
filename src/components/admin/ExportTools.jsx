@@ -104,9 +104,24 @@ export default function ExportTools() {
               ? 'Aún no hay fotos aprobadas.'
               : `${approvedPhotos.length} foto${approvedPhotos.length === 1 ? '' : 's'} aprobada${approvedPhotos.length === 1 ? '' : 's'} listas para empaquetar.`}
           </p>
-          {zipProgress && zipBusy && (
+          {zipBusy && (
             <p className={styles.progress}>
-              Descargando {zipProgress.current} / {zipProgress.total}…
+              <span className={styles.spinner} aria-hidden="true" />
+              {zipProgress && zipProgress.total > 0 ? (
+                <>
+                  Descargando {zipProgress.current} / {zipProgress.total}
+                  <span className={styles.progressBar} aria-hidden="true">
+                    <span
+                      className={styles.progressFill}
+                      style={{
+                        width: `${Math.round((zipProgress.current / zipProgress.total) * 100)}%`,
+                      }}
+                    />
+                  </span>
+                </>
+              ) : (
+                <>Empaquetando fotos…</>
+              )}
             </p>
           )}
           <button

@@ -28,7 +28,7 @@ export default function AmountField({
   const isCustom = numValue != null && !isPreset;
 
   // react-hook-form's register returns { ref, onChange, onBlur, name }
-  const { ref: rhfRef, ...registerRest } = register('amount');
+  const { ref: rhfRef, onChange: rhfOnChange, ...registerRest } = register('amount');
 
   const handlePreset = (value) => {
     setValue('amount', value, { shouldValidate: true, shouldDirty: true });
@@ -37,6 +37,15 @@ export default function AmountField({
   const handleOther = () => {
     setValue('amount', '', { shouldValidate: false, shouldDirty: true });
     setTimeout(() => inputRef.current?.focus(), 0);
+  };
+
+  // min="1" en HTML5 solo valida en submit; no impide pegar/escribir un
+  // negativo. Strippeamos el "-" inicial antes de pasar el valor a RHF.
+  const handleAmountChange = (e) => {
+    const v = e.target.value;
+    const sanitized = typeof v === 'string' ? v.replace(/^-+/, '') : v;
+    if (sanitized !== v) e.target.value = sanitized;
+    rhfOnChange(e);
   };
 
   const hint = suggestedAmount != null
@@ -78,6 +87,7 @@ export default function AmountField({
         placeholder={suggestedAmount != null ? String(suggestedAmount) : '—'}
         aria-invalid={!!error}
         {...registerRest}
+        onChange={handleAmountChange}
         ref={(el) => {
           rhfRef(el);
           inputRef.current = el;

@@ -14,7 +14,7 @@ const GAP_ABOVE_FOOTER = 16;
  * viewport (scroll hacia arriba), vuelve a fixed.
  */
 export default function FloatingCTA() {
-  const { openForm } = useFormModal();
+  const { openForm, isModalOpen } = useFormModal();
   const buttonRef = useRef(null);
   const [absoluteTop, setAbsoluteTop] = useState(null);
 
@@ -54,6 +54,11 @@ export default function FloatingCTA() {
   }, []);
 
   const isAboveFooter = absoluteTop !== null;
+
+  // Si el modal está abierto, el FAB queda detrás (z-index del modal lo tapa)
+  // pero seguía siendo focuseable y clickeable a través de teclado/asistencias.
+  // Lo retiramos del flujo accesible mientras el modal está activo.
+  if (isModalOpen) return null;
 
   return (
     <button
