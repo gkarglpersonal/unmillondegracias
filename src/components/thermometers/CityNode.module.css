@@ -60,7 +60,10 @@
 
 .image {
   width: 100%;
-  height: 220px;
+  /* aspect-ratio evita CLS y mantiene la proporción declarativa en lugar de
+   * un alto fijo de 220 px que se ve cortado en pantallas estrechas. */
+  aspect-ratio: 4 / 3;
+  height: auto;
   object-fit: cover;
   object-position: center;
   border-radius: 12px;
