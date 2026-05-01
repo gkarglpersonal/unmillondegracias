@@ -43,7 +43,7 @@ export const copy = {
       {
         period: 'Los años recientes',
         caption: 'Una maestra así solo se encuentra una vez en la vida.',
-        photoUrl: null,
+        photoUrl: '/images/Mariangeles_recientes.png',
       },
     ],
   },
