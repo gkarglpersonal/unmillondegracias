@@ -11,7 +11,8 @@ instrucciones para hacer.
 
 | Documento | Estado | Resumen |
 |---|---|---|
-| [Fase 3 — diferidos de fase 2](./fase-3-deferidos.md) | 📋 Listo para ejecutar | 8 puntos que la fase 2 dejó por límite de tiempo: paginación admin, rules FK + rate limit, RGPD checkbox, photos rechazo trifásico, errores submit específicos, FormModal block mid-submit, conteo real en hard delete. |
+| [Fase 3 — kickoff autónomo](./fase-3-kickoff.md) | 📋 Listo para pegar | Wrapper que se pega tal cual en sesión nueva. Verifica prerequisitos manuales (CORS + Auth domains), hace setup git, da permisos amplios y delega al runbook técnico de fase 3. |
+| [Fase 3 — runbook técnico (diferidos de fase 2)](./fase-3-deferidos.md) | 📋 Listo para ejecutar | 8 puntos que la fase 2 dejó por límite de tiempo: paginación admin, rules FK + rate limit, RGPD checkbox, photos rechazo trifásico, errores submit específicos, FormModal block mid-submit, conteo real en hard delete. Incluye preámbulo "Estado al 2026-05-02" con extras de fase 2. |
 | [Fase 2 — kickoff autónomo](./fase-2-kickoff.md) | ✅ Ejecutado 2026-05-01 | Wrapper de arranque. Resultado: ver [audit fase 2](../audits/2026-05-01-fase-2-mejoras.md). |
 | [Fase 2 — runbook técnico](./fase-2-importantes-menores.md) | ✅ Ejecutado 2026-05-01 | Especificación de los 22 puntos. 14/22 cerrados; los 8 restantes pasaron a fase 3. |
 

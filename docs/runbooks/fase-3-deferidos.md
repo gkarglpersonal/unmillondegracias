@@ -8,11 +8,56 @@ con archivos disjuntos, QAs independientes tras cada commit, gate de
 build/lint, reparación si QA encuentra problemas dentro del scope,
 anotar bugs colaterales sin tocarlos, reporte final en `docs/audits/`.
 
+## Estado al 2026-05-02
+
+Tras cerrar fase 2, además de los 14 puntos del audit original
+(documentados en
+[`2026-05-01-fase-2-mejoras.md`](../audits/2026-05-01-fase-2-mejoras.md))
+se hicieron **extras** que NO estaban en el audit y que conviene tener
+presentes para no repetir trabajo:
+
+- ✅ **HEIC en formulario público**: detección + conversión client-side
+  con `heic2any` (dynamic import) y mensaje claro si la conversión
+  falla. Ver `src/utils/convertHeic.js` y `PhotoUploader.jsx`.
+- ✅ **Robustez de "Aprobar foto"**: `movePhotoToApproved` y
+  `movePhotoToPending` con descarga de blob en doble estrategia
+  (getDownloadURL+fetch → fallback a SDK getBlob), errores por etapa
+  con prefijo `[descargar pending]`/`[subir approved]`/`[URL aprobada]`,
+  recovery idempotente si el blob ya estaba en `/approved/` por un
+  intento previo fallido. `PhotosModeration.jsx` muestra `err.code`
+  real, no genérico.
+- ✅ **Ver más en muro**: `MessagesWall.jsx` muestra 3 mensajes
+  inicialmente, con botón `Ver todos los mensajes (N)`. Importante en
+  mobile para no bloquear scroll a la galería.
+- ✅ **CityNode banner restaurado**: el cambio de fase 2 a
+  `aspect-ratio: 4/3` rompía el banner en desktop (imagen de 700 px
+  de alto). Revertido a `height: 220px` con object-fit cover.
+- ✅ **`cors.json` añadido al repo** (raíz). Necesario para que
+  `getDownloadURL+fetch` funcione desde `unmillondegracias.com`.
+- ✅ **Storage rules redeployed**: el SDK detectó drift entre repo y
+  prod en el deploy de fase 2-debug. Ahora están sincronizadas.
+
+**Pendientes manuales del usuario** (Claude no puede hacerlos desde la
+sandbox; el kickoff de fase 3 los pregunta antes de arrancar):
+
+- ⏸ Aplicar `cors.json` al bucket con
+  `gsutil cors set cors.json gs://mariangeles-viaje-32169.firebasestorage.app`.
+- ⏸ Añadir `unmillondegracias.com` a Firebase Console → Authentication
+  → Settings → Authorized domains.
+
+Sin esos dos pasos, las fotos no se podrán aprobar en producción
+aunque el código esté correcto.
+
 ## Cómo usarlo
 
-1. Lee primero
-   [`docs/audits/2026-05-01-fase-2-mejoras.md`](../audits/2026-05-01-fase-2-mejoras.md)
-   para entender por qué cada punto se quedó fuera de fase 2.
+**Recomendado**: usa el wrapper [`fase-3-kickoff.md`](./fase-3-kickoff.md)
+en lugar de pegar este runbook directo. El kickoff hace setup git,
+verifica los prerequisitos manuales y inyecta lecciones de fases 1 y 2.
+
+**Si prefieres pegar este runbook directo** (para alcance reducido o
+revisión de plan antes de ejecutar):
+
+1. Lee primero los reports de fases 1 y 2 en `docs/audits/`.
 2. Verifica que estás en una rama nueva limpia desde `main`:
    ```bash
    git checkout main && git pull origin main
