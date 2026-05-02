@@ -51,7 +51,7 @@ export const copy = {
   trip: {
     title: 'El nuevo capítulo',
     transition:
-      'Ahora es su turno. Este viaje es nuestro agradecimiento: tiempo, libertad y una nueva etapa que empieza.',
+      'Ahora le toca a ella disfrutar de esta nueva etapa, y no hay mejor forma de celebrarlo que con un bonito viaje como muestra de agradecimiento.',
     intro:
       'Un viaje a Argentina para dos personas, organizado con PANGEA The Travel Store. Como en una lista de bodas, puedes contribuir a la experiencia que más te emocione. Al final, ella decidirá cómo disfrutarlo.',
     howItWorks: [
