@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useTripItems } from '../../hooks/useTripItems.js';
 import { createManualContribution } from '../../firebase/contributions.js';
 import styles from './ManualContributionForm.module.css';
@@ -26,9 +26,19 @@ export default function ManualContributionForm() {
   const [busy, setBusy] = useState(false);
   const [feedback, setFeedback] = useState(null);
 
+  // Guard síncrono contra doble-clic. `setBusy` es asíncrono y no protege
+  // del segundo evento que entra en el mismo tick antes del re-render.
+  // Un useRef sí: la asignación es inmediata y la lectura del ref también.
+  const submittingRef = useRef(false);
+
   const submit = async (e) => {
     e.preventDefault();
-    if (!form.name.trim()) return;
+    if (submittingRef.current) return;
+    submittingRef.current = true;
+    if (!form.name.trim()) {
+      submittingRef.current = false;
+      return;
+    }
     setBusy(true);
     setFeedback(null);
 
@@ -58,6 +68,7 @@ export default function ManualContributionForm() {
         text: 'No se pudo guardar la aportación. Vuelve a intentarlo en un momento.',
       });
     } finally {
+      submittingRef.current = false;
       setBusy(false);
     }
   };
