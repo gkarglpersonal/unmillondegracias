@@ -15,7 +15,6 @@ import {
   startAfter,
 } from 'firebase/firestore';
 import { db } from './config.js';
-import { deletePhotoByPath } from './storage.js';
 
 const C_PRIVATE = 'contributions';
 const C_PUBLIC = 'messageWall';
@@ -427,31 +426,42 @@ export async function createManualContribution({
 }
 
 /**
- * Borra una aportación de forma TRANSACCIONAL conservando el mensaje del
- * muro siempre que el donante hubiese escrito uno.
+ * Borra solo la aportación económica conservando el mensaje y la foto en
+ * el muro público.
+ *
+ * Caso de uso típico: alguien rellena el formulario con mensaje, foto e
+ * importe pero nunca paga a PANGEA. El admin elimina la aportación
+ * económica desde el panel; mensaje y foto siguen visibles en el muro y
+ * en la galería para que Mariángeles los vea.
  *
  * Diseño:
  *  - `runTransaction` que lee la contribution; si está pagada, decrementa
  *    los 4 contadores (tripItem si aplica + config siempre). Borra el doc
- *    contribution. Si algo falla, rollback automático.
- *  - **El mensaje del muro se conserva** cuando la entrada tenía texto
- *    (`message` no vacío). Solo se limpian los campos vinculados a la
- *    aportación: `paid: false`, `contributionId: null`, foto borrada y
- *    sus campos puestos a null/false. El `tripItemId` se preserva para
- *    que el mensaje siga vinculado al contexto de la partida; como
- *    `paid: false`, no aparece bajo el termómetro pero sí en el muro.
- *  - Si la entrada NO tenía mensaje, el mirror se borra (no hay nada que
- *    preservar y dejar un doc fantasma sería ruido).
- *  - Idempotente: si la contribution no existe (alguien la borró antes),
+ *    privado de la contribución. Si algo falla, rollback automático.
+ *  - **El mirror público (messageWall) se conserva** si la entrada tenía
+ *    contenido del usuario: mensaje no vacío, o foto. Solo se limpian los
+ *    campos vinculados a la aportación económica:
+ *    `paid: false` y `contributionId: null`. Los campos de foto
+ *    (`photoStoragePath`, `photoUrl`, `photoApproved`), el mensaje y el
+ *    `tripItemId` permanecen intactos. Como `paid: false`, el donante no
+ *    aparece bajo el termómetro de la partida (filtro `paid==true`), pero
+ *    el mensaje sigue en el muro y la foto en la galería si estaba
+ *    aprobada.
+ *  - Si la entrada NO tenía ni mensaje ni foto (aportación monetaria
+ *    pura), el mirror se borra: no hay contenido del usuario que
+ *    preservar y dejarlo sería un fantasma sin nada visible.
+ *  - **El blob de Storage NO se borra**: la foto, si la había, sigue
+ *    accesible para la galería pública (si estaba aprobada) o para
+ *    moderación (si seguía pendiente).
+ *  - Idempotente: si la contribución no existe (alguien la borró antes),
  *    sale limpiamente sin tirar ni mutar contadores.
- *  - Best-effort tras la transacción: borra el blob de Storage si la
- *    contribución apuntaba a uno. Esto vive fuera de la transacción
- *    porque Firestore transactions no pueden tocar Storage.
  *
  * Casos:
- *  - Pendiente (no pagada): solo borra el doc privado y limpia/borra el
- *    mirror. No toca contadores.
- *  - Pagada con tripItemId null (fondo general): decrementa solo config.
+ *  - Pendiente, con mensaje o foto: limpia mirror, conserva contenido,
+ *    no toca contadores.
+ *  - Pendiente, sin mensaje ni foto: borra mirror y privado, no toca
+ *    contadores.
+ *  - Pagada con tripItemId null (fondo general): decrementa config.
  *  - Pagada con tripItemId: decrementa tripItem + config.
  *
  * @param {string} contributionId
@@ -459,13 +469,7 @@ export async function createManualContribution({
 export async function deleteContribution(contributionId) {
   if (!contributionId) return;
 
-  // Capturado dentro de la transacción para usarlo en el cleanup de Storage
-  // tras el commit. Se reset en cada intento (Firestore puede reintentar).
-  let storagePathToDelete = null;
-
   await runTransaction(db, async (tx) => {
-    storagePathToDelete = null;
-
     const cRef = doc(db, C_PRIVATE, contributionId);
     const cSnap = await tx.get(cRef);
     if (!cSnap.exists()) {
@@ -480,6 +484,7 @@ export async function deleteContribution(contributionId) {
     const amount = c.amount && c.amount > 0 ? Number(c.amount) : null;
     const hasMessage =
       typeof c.message === 'string' && c.message.trim().length > 0;
+    const hasPhoto = !!c.photoStoragePath;
 
     if (wasPaid && c.tripItemId && amount) {
       // tx.get para satisfacer la regla de read-before-write de la
@@ -487,16 +492,16 @@ export async function deleteContribution(contributionId) {
       await tx.get(doc(db, C_TRIP, c.tripItemId));
     }
 
-    // Mirror público: conservar si hay mensaje, borrar si no lo hay.
+    // Mirror público: conservar si hay contenido del usuario (mensaje o
+    // foto), borrar si no había nada que preservar.
     if (c.publicMessageId) {
       const mRef = doc(db, C_PUBLIC, c.publicMessageId);
-      if (hasMessage) {
+      if (hasMessage || hasPhoto) {
+        // Solo se limpian los campos vinculados a la aportación económica.
+        // Mensaje, foto (path/url/aprobada) y tripItemId quedan intactos.
         tx.update(mRef, {
           paid: false,
           contributionId: null,
-          photoStoragePath: null,
-          photoUrl: null,
-          photoApproved: false,
         });
       } else {
         tx.delete(mRef);
@@ -524,19 +529,11 @@ export async function deleteContribution(contributionId) {
         { merge: true }
       );
     }
-
-    // Capturamos el path para borrarlo después del commit.
-    storagePathToDelete = c.photoStoragePath || null;
   });
 
-  // Cleanup best-effort de Storage. Fuera de la transacción.
-  if (storagePathToDelete) {
-    try {
-      await deletePhotoByPath(storagePathToDelete);
-    } catch (err) {
-      console.warn('deleteContribution: foto no borrada:', storagePathToDelete, err?.code || err?.message);
-    }
-  }
+  // El blob de Storage NO se borra: la foto se conserva en el muro/galería.
+  // Si en el futuro hay que borrar foto y mensaje juntos, esa decisión vive
+  // en moderación (PhotosModeration → "Borrar entrada" ya cubre ese caso).
 }
 
 /**

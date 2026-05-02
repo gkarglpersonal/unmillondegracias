@@ -93,24 +93,27 @@ export default function ContributionsList() {
    * Borrado con confirmación reforzada para pagadas: enuncia consecuencias
    * y exige una segunda confirmación con el importe en el texto.
    *
-   * Nota: el mensaje del muro se conserva si lo había (la aportación
-   * económica se borra, pero el mensaje que la persona escribió para
-   * Mariángeles permanece). La foto se borra siempre.
+   * Nota: solo se borra la aportación económica. El mensaje y la foto que
+   * la persona haya enviado se conservan en el muro y la galería. Si la
+   * entrada no tenía ni mensaje ni foto, la entrada del muro se elimina
+   * (sería un fantasma sin contenido visible).
    */
   const handleDelete = async (c) => {
     const isPaid = c.paymentStatus === 'paid';
     const amountText = c.amount && c.amount > 0 ? formatCurrency(c.amount) : 'sin importe';
     const hasMessage =
       typeof c.message === 'string' && c.message.trim().length > 0;
-    const messagePart = hasMessage
-      ? 'El mensaje del muro se conserva; solo se borra la aportación económica y la foto (si la había).'
-      : 'No hay mensaje vinculado, así que la entrada del muro también se elimina.';
+    const hasPhoto = !!c.photoStoragePath;
+    const preservePart =
+      hasMessage || hasPhoto
+        ? 'El mensaje y la foto de esta persona se conservan en el muro.'
+        : 'Esta aportación no tiene mensaje ni foto, así que la entrada del muro también se elimina.';
 
     let confirmText;
     if (isPaid) {
-      confirmText = `Vas a eliminar esta aportación de ${amountText}. Se descontará del termómetro y del contador general. ${messagePart} Esta acción no se puede deshacer.\n\n¿Continuar?`;
+      confirmText = `Vas a eliminar esta aportación económica de ${amountText}. Se descontará del termómetro y del contador general. ${preservePart} Esta acción no se puede deshacer.\n\n¿Continuar?`;
     } else {
-      confirmText = `Vas a eliminar esta aportación pendiente. ${messagePart} Esta acción no se puede deshacer.\n\n¿Continuar?`;
+      confirmText = `Vas a eliminar esta aportación económica. ${preservePart} Esta acción no se puede deshacer.\n\n¿Continuar?`;
     }
 
     if (!confirm(confirmText)) return;
