@@ -94,6 +94,8 @@ Acceso con email/contraseña (Firebase Auth). Solo Gerry.
 - **Mensajes:** mostrar/ocultar (se publican automáticamente, no requieren aprobación)
 - **Fotos:** aprobar o rechazar (requieren aprobación manual antes de aparecer en la galería)
 - **Partidas:** crear, editar, archivar (soft delete con active: false), borrar si no tienen contribuciones
+- **Aportación manual:** registrar a mano una aportación (con o sin importe) cuando alguien notifica por WhatsApp/transferencia directa
+- **Subir foto:** subir una foto en nombre de alguien (típicamente recibida por WhatsApp) sin que aparezca en el feed de "X se ha sumado". Crea un doc en `messageWall` con `excludeFromFeed: true`; la foto sigue el flujo normal de aprobación desde la pestaña "Fotos" y acaba en la galería.
 - **Exportar:** PDF de mensajes + ZIP de fotos para entregar a Mariángeles al final
 
 ---
@@ -185,6 +187,7 @@ Verificar con: `gsutil cors get gs://mariangeles-viaje-32169.firebasestorage.app
   - Bug del regex de `tripItemId` en rules: `^[A-Za-z0-9_-]{20}$` exigía 20 chars exactos pero los IDs reales del seed son `tripItem-01..29` (11 chars). Toda aportación a partida concreta era rechazada con `permission-denied`. Regex relajado a `{6,64}` para cubrir IDs deterministas + auto-IDs. Rules redesplegadas (commit `7f27511`).
   - Confirmación de escritura con `waitForPendingWrites`: `setDoc` resolvía contra cache local sin esperar al servidor (persistencia offline activa). Una red mala podía dejar la escritura solo en local mientras la UI mostraba "guardado". Ahora se exige ack del servidor con timeout de 15 s antes de declarar éxito; si timeout, copy específico ("comprueba tu conexión") y NO se hace cleanup local. Copy de `errors.save` reescrito para no afirmar falsamente "hemos llegado a guardar". Nuevo `errors.serverTimeout` (commit `4fb74bc`).
 - ✅ **Smoke test end-to-end confirmado**: la primera participación real del proyecto (esposa de Gerry, con partida concreta) se guardó correctamente en Firestore y apareció en `/admin` tras desplegar los dos fixes urgentes. Camino completo verificado: cliente público → rule acepta → `waitForPendingWrites` → `notifyPangea` → `notifyAdmin` → `SuccessOverlay` → doc visible en admin.
+- ✅ **Subida manual de fotos desde admin sin notificar al feed (commit `2ba44e6`)**: nueva pestaña "Subir foto" en `/admin` para incorporar fotos recibidas por WhatsApp en nombre de la persona. Los docs llevan `excludeFromFeed: true` y `subscribeRecentContributions` filtra el feed del hero por ese flag. Rule `allow create: if isAdmin()` añadida en `messageWall` para que el admin pueda escribir esos campos especiales sin pasar por las validaciones públicas. La rule pública sigue intacta.
 - 🚀 **Lista para lanzamiento: lunes 5 de mayo de 2026 — sin puntos técnicos pendientes bloqueantes**
 
 **Riesgos residuales conocidos** (no bloquean el lanzamiento, documentados en [`docs/HISTORIAL_TECNICO.md`](HISTORIAL_TECNICO.md)):

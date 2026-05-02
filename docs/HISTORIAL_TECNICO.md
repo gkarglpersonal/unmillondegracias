@@ -184,6 +184,27 @@ Tras los dos fixes desplegados, la esposa de Gerry reintentó la participación 
 - **Cleanup compensatorio: pensar en el caso "escrituras pendientes en cache".** Cuando una operación falla con `server-ack-timeout`, las escrituras anteriores siguen pendientes en cache local. Encolar `deleteDoc` para "limpiar" puede dejar el sistema en un estado peor (docs huérfanos si la pestaña se cierra antes de sincronizar todo). Mejor: no tocar nada y dejar que `setDoc` idempotente se aplique cuando reconecte; si el usuario reintenta, los IDs son los mismos.
 - **Copy de error: describir el estado real, no el deseado.** "Hemos llegado a guardar tu participación pero algo se ha cortado" sonaba a recovery posible, cuando en realidad no había nada guardado. La regla simple es: si no estás seguro de qué fase falló, no afirmes nada sobre lo que se hizo o no se hizo. "No hemos podido completar el envío. Vuelve a intentarlo." es mejor que cualquier afirmación falsa sobre el estado.
 
+### Subida manual de fotos desde admin sin notificar al feed (2 mayo 2026)
+
+**Caso de uso:** alguien envía una foto por WhatsApp u otro canal y el admin la quiere poner en la galería en su nombre, sin que aparezca en el feed de "X se ha sumado" del hero. Ese feed debe quedar reservado para participaciones reales del formulario público.
+
+**Trigger:** durante las pruebas pre-lanzamiento, Gerry subió 5 fotos de Yvonne (compañera de Mariángeles que las mandó por WhatsApp) usando el formulario público en su nombre. El feed se llenó de "Yvonne se ha sumado" repetidos, ocultando entradas reales anteriores y posteriores. Se identificaron en Firestore por `email: gkargl@outlook.com` + `amount: null` y se borraron con un script `firebase-admin` puntual; los blobs de `photos/approved/` quedaron huérfanos como tarea de limpieza opcional.
+
+**Diseño del feature (commit `2ba44e6`):**
+
+- Nuevo campo opcional `excludeFromFeed: boolean` en docs de `messageWall`. Solo lo escribe el admin desde la nueva pestaña.
+- `subscribeRecentContributions` filtra `excludeFromFeed !== true`. Para garantizar que devuelve N elementos visibles aunque algunos recientes estén excluidos, trae `n * 3` y recorta en cliente. Filtro estricto a `true`: docs antiguos sin el campo siguen apareciendo (campo ausente / `false` / `undefined` significan "incluir").
+- Nueva función `createManualPhotoEntry({ name, message, photoStoragePath, tripItemId })` en `messageWall.js`. Crea solo el doc del muro (NO toca `contributions` — no es aportación económica) con `excludeFromFeed: true`, `photoApproved: false` y la foto en `photos/pending/`. La foto se aprueba luego desde "Fotos" como cualquier otra.
+- Nueva pestaña **"Subir foto"** en `/admin` (`ManualPhotoUploadForm.jsx`): nombre obligatorio, foto obligatoria (reusa `PhotoUploader` del público con HEIC + compresión), mensaje y partida opcionales. `submittingRef` síncrono igual que el resto de formularios admin.
+- `firestore.rules`: añadida `allow create: if isAdmin();` en `messageWall` junto a la rule pública. Las dos coexisten en OR (Firestore evalúa todas las cláusulas allow). El admin puede crear con campos especiales (`excludeFromFeed`, `photoApproved` directo si lo necesitase) sin pasar por las validaciones del flujo público; la rule pública sigue intacta para cualquiera que no esté autenticado como admin.
+
+**Lecciones técnicas registradas:**
+
+- **Patrón "campo opt-out + filtro en cliente" para diferenciar comportamientos sin segregar colecciones.** Lo natural sería pensar en una segunda colección `manualPhotos` con sus propias rules y subscribers. Pero crear una colección paralela duplica la moderación, la galería, los exports y las queries — todo el resto del código tendría que leer de las dos. Un campo booleano opcional con filtro selectivo en los subscribers que lo necesitan (solo el feed) es mucho más simple y no añade superficie. Funciona porque el "cómo aparece" depende del consumer, no del doc en sí: la galería sigue mostrando todas las fotos aprobadas, el muro sigue mostrando todos los mensajes visibles, solo el feed del hero cambia su criterio.
+- **Compensar el filtro en cliente sobreproveyendo la query.** `limit(n)` + filtro cliente puede dejar el feed con menos de N elementos si los más recientes están excluidos. La mitigación trivial (`limit(n * 3)`) es práctica para volúmenes pequeños; reads extra son baratos. La alternativa "correcta" sería un índice compuesto `where('excludeFromFeed', '!=', true) + orderBy('createdAt')`, pero `!=` en Firestore excluye también los docs sin el campo — los docs antiguos se perderían. Filtro en cliente es más robusto ante cambios de schema.
+- **Dos cláusulas `allow create` en la misma rule de Firestore.** En `messageWall`, `allow create: if isAdmin()` y `allow create: if [validaciones públicas]` coexisten: Firestore las evalúa en OR, así que el admin pasa por la primera y un usuario público por la segunda. Permite mantener las validaciones estrictas del público (regex de IDs, photoUrl null obligado, etc.) sin restringirlas al admin que las necesita relajadas para las subidas manuales.
+- **Limpieza puntual de Firestore con `firebase-admin`.** Para borrar datos en producción a partir de un patrón (`name === "Yvonne"`), un script Node de un solo uso con `firebase-admin` + `service-account.json` es más seguro y rápido que la consola de Firebase. Patrón: crear `scripts/_temp-XXX.mjs` con modo dry-run por defecto y flag `--delete` para confirmar; ejecutar dry-run primero para revisar qué encuentra; ejecutar con `--delete` para borrar; eliminar el script tras la operación. El prefijo `_temp-` lo distingue de scripts permanentes y recuerda que hay que limpiarlo. Storage de blobs requiere paso explícito separado: el script aquí no los tocó, quedaron como follow-up de limpieza (5 blobs huérfanos en `photos/approved/`).
+
 ---
 
 ## Problemas resueltos y cómo
@@ -264,8 +285,8 @@ git push
 - Solo visible para admin
 
 **`messageWall`** — mirror público de los mensajes
-- `name`, `message`, `photoUrl` (solo si aprobada), `photoStoragePath`, `visible`, `photoApproved`
-- Lectura pública, escritura solo admin o función serverless
+- `name`, `message`, `photoUrl` (solo si aprobada), `photoStoragePath`, `messageHidden`, `photoApproved`, `paid`, `tripItemId`, `contributionId`, `excludeFromFeed` (solo en subidas manuales del admin)
+- Lectura pública. Escritura: el público crea con validaciones estrictas (ver `firestore.rules`); el admin tiene `allow create: if isAdmin()` además, lo que le permite escribir docs con `excludeFromFeed: true` sin pasar por las validaciones públicas.
 
 **`tripItems`** — las 29 partidas del viaje
 - `name`, `description`, `targetAmount`, `raisedAmount`, `contributorCount`, `active`, `city`, `order`
