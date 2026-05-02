@@ -64,6 +64,27 @@ Highlights:
 
 **Report completo:** [`docs/audits/2026-05-02-fase-3-deferidos.md`](audits/2026-05-02-fase-3-deferidos.md)
 
+### Correcciones post-Fase 3 (2 mayo 2026)
+
+Smoke test tras el merge de Fase 3 destapó cinco correcciones adicionales en el panel admin y el formulario público. Todas resueltas el mismo día con build verde y deploy manual a `gh-pages`.
+
+| # | Problema | Solución | Commit |
+|---|---|---|---|
+| 1 | "Rechazar foto" parecía seguir borrando el mensaje del muro | Verificado: el código en `main` ya separaba "Rechazar foto" (preserva mensaje si lo había) de "Borrar entrada" (siempre borra todo) desde el commit `267f77f` de Fase 3. El síntoma reportado era un texto de confirm pre-Fase-3 — deploy stale en GitHub Pages / cache de navegador. Resuelto al desplegar el bundle nuevo (hash distinto invalida cache). | (sin cambio de código) |
+| 2 | El formulario de desktop no se limpiaba tras enviar correctamente | `reset()` de react-hook-form + `setPhoto(null)` justo después de `onSuccess` en `ParticipationForm`. La variante `modal` no lo notaba (el modal se desmonta); el sidebar de desktop quedaba con todos los datos rellenos. | `325f622` |
+| 3 | Eliminar una sección de partidas no avisaba si las partidas tenían aportaciones reales | `useEffect` en `DeleteSectionModal` con `getDocs(messageWall where tripItemId in [...])` por chunks de 30 IDs. Aviso visible en rojo cuando hay aportaciones, con recomendación de usar "Mover tarjetas a Sin asignar" si se quiere preservar la trazabilidad. Estados: cargando / sin aportaciones / con aviso / fallback en error. | `325f622` |
+| 4 | Borrar una aportación borraba también el mensaje del muro | `deleteContribution` ahora conserva el mirror público cuando la entrada tiene mensaje **o** foto. Solo se limpian los campos vinculados a la aportación económica: `paid: false`, `contributionId: null`. El mensaje, la foto (path/url/aprobada) y el `tripItemId` quedan intactos. El blob de Storage **no se borra** — la foto sigue accesible en galería pública o moderación. Si la entrada no tenía ni mensaje ni foto, el mirror se elimina (sería un fantasma). | `4dca336` (solo mensaje) → `1d8d8ce` (mensaje + foto, versión final) |
+| 5 | Texto del confirm con variantes condicionales | Simplificado a un único texto literal en `handleDelete`: *"Vas a eliminar esta aportación económica. El mensaje y la foto de esta persona se conservan en el muro. Esta acción no se puede deshacer. ¿Continuar?"*. La doble confirmación para pagadas se conserva intacta con el importe a restar. | `1ab3e8c` |
+| 6 | `FirebaseError: No document to update` al borrar la segunda aportación seguida | Cuando el mirror del muro había sido borrado antes (desde "Mensajes" del admin o por una operación previa), `tx.update` lanzaba `not-found` y hacía rollback de toda la transacción. Fix: `tx.get(mRef)` antes de cualquier write para detectar si existe; si existe, `update` o `delete` según corresponda; si no, se omite ese paso y solo se borra la contribution privada y se decrementan los contadores. | `72d9247` |
+
+**Lecciones técnicas registradas:**
+
+- **`tx.delete` vs `tx.update` en transacciones Firestore**: `tx.delete` sobre un doc inexistente es **no-op silencioso**, `tx.update` lanza `not-found` y aborta la transacción. Cuando se sustituye uno por otro, hay que añadir un `tx.get` previo para verificar existencia.
+- **Read-before-write en transacciones**: todas las llamadas `tx.get` deben preceder a cualquier `tx.update`/`tx.delete`/`tx.set` dentro del mismo `runTransaction`. Al introducir lecturas adicionales, agruparlas con las existentes al inicio.
+- **Cache de GitHub Pages**: tras un cambio que solo afecta a admin, el bundle nuevo invalida el cache automáticamente (hash distinto). Si el síntoma reportado cita texto que ya no existe en `main`, sospechar deploy stale antes que bug en el código actual.
+- **Reset de RHF al éxito**: la variante `modal` esconde el problema del form persistente porque el componente se desmonta. La variante `sidebar` (desktop) sí queda montada y necesita `reset()` explícito.
+- **Aviso en modales destructivos**: cuando una operación destructiva tiene consecuencias variables según los datos, el modal debe consultar el estado real al abrirse y mostrar el conteo, no confiar en agregados aproximados (lección compartida con la corrección C-2 de Fase 3).
+
 ---
 
 ## Problemas resueltos y cómo

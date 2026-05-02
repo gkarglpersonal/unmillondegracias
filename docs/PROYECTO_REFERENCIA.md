@@ -158,6 +158,12 @@ Verificar con: `gsutil cors get gs://mariangeles-viaje-32169.firebasestorage.app
 - ✅ **Fase 1 completada** (6 críticos cerrados — auditoría 30 abril)
 - ✅ **Fase 2 completada** (14 mejoras cerradas + 8 diferidas a Fase 3 — 1 mayo)
 - ✅ **Fase 3 completada** (8 diferidos cerrados, 0 bugs colaterales nuevos — 2 mayo)
+- ✅ **Correcciones post-Fase 3 aplicadas y desplegadas** (2 mayo, smoke test):
+  - Rechazar foto conserva el mensaje en el muro (solo se borra la foto)
+  - El formulario de desktop se limpia automáticamente tras un envío correcto
+  - Eliminar una sección de partidas avisa en rojo si alguna partida tiene aportaciones reales, con recomendación de mover a "Sin asignar"
+  - Borrar una aportación conserva el mensaje y la foto en el muro — solo se elimina la aportación económica y los contadores se decrementan si estaba pagada
+  - Bug `No document to update` al borrar aportaciones consecutivas: corregido verificando existencia del mirror antes del update
 - ✅ Rules de Firestore actualizadas y desplegadas con FK suave por formato
 - ✅ Checkbox RGPD obligatorio en el formulario, link a `/privacy`, mención explícita de PANGEA
 - ✅ Errores del formulario específicos por fase (foto / guardado / desconocido)

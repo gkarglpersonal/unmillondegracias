@@ -64,10 +64,11 @@ gsutil cors set cors.json gs://mariangeles-viaje-32169.firebasestorage.app
 ## Estado al 2 mayo 2026
 
 ✅ Página en producción con contenido real  
-✅ Formulario funcional (emails a Gerry y PANGEA)  
+✅ Formulario funcional (emails a Gerry y PANGEA, form sidebar se limpia tras enviar)  
 ✅ Admin funcional (mensajes, fotos, aportaciones, partidas, exportar)  
 ✅ CORS configurado · Authorized domains configurado  
 ✅ **Fase 1, 2 y 3 completadas** (auditoría + 28/30 puntos cerrados, cero diferidos a Fase 4)  
+✅ Correcciones post-Fase 3 aplicadas y desplegadas (smoke test del 2 mayo): borrar aportación conserva mensaje y foto, aviso en rojo al eliminar sección con aportaciones, fix `No document to update`  
 ✅ RGPD checkbox · errores específicos · paginación admin · 2 acciones de moderación de fotos · FK suave en rules  
 🚀 **Lanzamiento: lunes 5 mayo 2026 — sin puntos técnicos pendientes bloqueantes**
 
