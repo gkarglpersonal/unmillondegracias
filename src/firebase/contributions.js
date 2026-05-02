@@ -427,24 +427,30 @@ export async function createManualContribution({
 }
 
 /**
- * Borra una aportación de forma TRANSACCIONAL y limpia todos los recursos
- * asociados.
+ * Borra una aportación de forma TRANSACCIONAL conservando el mensaje del
+ * muro siempre que el donante hubiese escrito uno.
  *
  * Diseño:
  *  - `runTransaction` que lee la contribution; si está pagada, decrementa
  *    los 4 contadores (tripItem si aplica + config siempre). Borra el doc
- *    messageWall mirror. Borra el doc contribution. Si algo falla,
- *    rollback automático.
+ *    contribution. Si algo falla, rollback automático.
+ *  - **El mensaje del muro se conserva** cuando la entrada tenía texto
+ *    (`message` no vacío). Solo se limpian los campos vinculados a la
+ *    aportación: `paid: false`, `contributionId: null`, foto borrada y
+ *    sus campos puestos a null/false. El `tripItemId` se preserva para
+ *    que el mensaje siga vinculado al contexto de la partida; como
+ *    `paid: false`, no aparece bajo el termómetro pero sí en el muro.
+ *  - Si la entrada NO tenía mensaje, el mirror se borra (no hay nada que
+ *    preservar y dejar un doc fantasma sería ruido).
  *  - Idempotente: si la contribution no existe (alguien la borró antes),
  *    sale limpiamente sin tirar ni mutar contadores.
  *  - Best-effort tras la transacción: borra el blob de Storage si la
- *    contribución apuntaba a uno (`photoStoragePath`). Esto vive fuera de
- *    la transacción porque Firestore transactions no pueden tocar
- *    Storage. Si Storage falla, se logea: el doc ya está borrado y eso
- *    es lo crítico para integridad.
+ *    contribución apuntaba a uno. Esto vive fuera de la transacción
+ *    porque Firestore transactions no pueden tocar Storage.
  *
  * Casos:
- *  - Pendiente (no pagada): solo borra docs, no toca contadores.
+ *  - Pendiente (no pagada): solo borra el doc privado y limpia/borra el
+ *    mirror. No toca contadores.
  *  - Pagada con tripItemId null (fondo general): decrementa solo config.
  *  - Pagada con tripItemId: decrementa tripItem + config.
  *
@@ -472,6 +478,8 @@ export async function deleteContribution(contributionId) {
     // antes de cualquier escritura.
     const wasPaid = c.paymentStatus === 'paid';
     const amount = c.amount && c.amount > 0 ? Number(c.amount) : null;
+    const hasMessage =
+      typeof c.message === 'string' && c.message.trim().length > 0;
 
     if (wasPaid && c.tripItemId && amount) {
       // tx.get para satisfacer la regla de read-before-write de la
@@ -479,12 +487,23 @@ export async function deleteContribution(contributionId) {
       await tx.get(doc(db, C_TRIP, c.tripItemId));
     }
 
-    // Borrar messageWall mirror si existe.
+    // Mirror público: conservar si hay mensaje, borrar si no lo hay.
     if (c.publicMessageId) {
-      tx.delete(doc(db, C_PUBLIC, c.publicMessageId));
+      const mRef = doc(db, C_PUBLIC, c.publicMessageId);
+      if (hasMessage) {
+        tx.update(mRef, {
+          paid: false,
+          contributionId: null,
+          photoStoragePath: null,
+          photoUrl: null,
+          photoApproved: false,
+        });
+      } else {
+        tx.delete(mRef);
+      }
     }
 
-    // Borrar contribution doc.
+    // Borrar contribution doc (privado, siempre).
     tx.delete(cRef);
 
     // Decrementar contadores solo si estaba pagada.
