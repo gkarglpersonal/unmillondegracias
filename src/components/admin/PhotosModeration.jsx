@@ -5,6 +5,7 @@ import {
   approvePhoto,
   unapprovePhoto,
   rejectPhoto,
+  rejectPhotoKeepMessage,
 } from '../../firebase/messageWall.js';
 import { getAdminPhotoUrl } from '../../firebase/storage.js';
 import { relativeTime } from '../../utils/formatDate.js';
@@ -109,15 +110,43 @@ export default function PhotosModeration() {
     }
   };
 
-  const handleReject = async (item) => {
-    if (!confirm('¿Borrar esta foto del todo? El mensaje (si lo hay) también se elimina.')) return;
+  // "Rechazar foto": elimina el blob y, si la entrada tiene mensaje,
+  // conserva el doc (mensaje permanece en el muro). Si no tiene
+  // mensaje, equivale a borrar la entrada porque no quedaría nada
+  // que mostrar.
+  const handleRejectKeepMessage = async (item) => {
+    const hasMessage = typeof item.message === 'string' && item.message.trim().length > 0;
+    const confirmMsg = hasMessage
+      ? '¿Borrar la foto y conservar el mensaje? La foto se elimina; el mensaje permanece en el muro.'
+      : '¿Borrar esta entrada? No tiene mensaje que conservar, así que desaparece del todo.';
+    if (!confirm(confirmMsg)) return;
+    setBusyId(item.id);
+    setActionError(null);
+    try {
+      if (hasMessage) {
+        await rejectPhotoKeepMessage(item.id);
+      } else {
+        await rejectPhoto(item.id);
+      }
+    } catch (err) {
+      console.error('rejectPhotoKeepMessage:', err);
+      setActionError(`No se pudo rechazar la foto: ${errDetail(err)}`);
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  // "Borrar entrada": elimina blob y doc en cualquier caso. Útil
+  // cuando el mensaje también es ofensivo o spam.
+  const handleRejectAll = async (item) => {
+    if (!confirm('¿Borrar la entrada completa? Foto y mensaje se eliminan. Esta acción no se puede deshacer.')) return;
     setBusyId(item.id);
     setActionError(null);
     try {
       await rejectPhoto(item.id);
     } catch (err) {
       console.error('rejectPhoto:', err);
-      setActionError(`No se pudo rechazar la foto: ${errDetail(err)}`);
+      setActionError(`No se pudo borrar la entrada: ${errDetail(err)}`);
     } finally {
       setBusyId(null);
     }
@@ -186,9 +215,17 @@ export default function PhotosModeration() {
                         type="button"
                         className={styles.rejectBtn}
                         disabled={busyId === p.id}
-                        onClick={() => handleReject(p)}
+                        onClick={() => handleRejectKeepMessage(p)}
                       >
-                        Rechazar
+                        Rechazar foto
+                      </button>
+                      <button
+                        type="button"
+                        className={styles.deleteAllBtn}
+                        disabled={busyId === p.id}
+                        onClick={() => handleRejectAll(p)}
+                      >
+                        Borrar entrada
                       </button>
                     </>
                   ) : (

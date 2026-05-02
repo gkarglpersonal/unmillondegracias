@@ -367,6 +367,41 @@ export async function unapprovePhoto(messageId) {
 }
 
 /**
+ * Rechaza solo la foto y conserva el mensaje. Borra el blob de Storage
+ * (si existe) y limpia los campos de foto en el doc, dejando el resto
+ * de la entrada intacta — texto, nombre y aporte económico siguen
+ * visibles en el muro.
+ *
+ * Pasos:
+ *  1. Lee el doc.
+ *  2. Si tiene `photoStoragePath`, borra el blob con `deletePhotoByPath`.
+ *  3. Actualiza el doc con `photoStoragePath: null`, `photoUrl: null`,
+ *     `photoApproved: false`.
+ *
+ * Idempotente: si la entrada ya está sin foto (sin path), solo aplica
+ * el update de flags. No tira si el doc no existe (no-op).
+ *
+ * Diferencia con `rejectPhoto`: aquella borra el doc completo; esta
+ * preserva el mensaje. Úsala cuando la foto sea inapropiada pero el
+ * texto del aporte sí merezca seguir en el muro.
+ */
+export async function rejectPhotoKeepMessage(messageId) {
+  const ref = doc(db, COL, messageId);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) return;
+  const data = snap.data();
+
+  if (data.photoStoragePath) {
+    await deletePhotoByPath(data.photoStoragePath);
+  }
+  await updateDoc(ref, {
+    photoStoragePath: null,
+    photoUrl: null,
+    photoApproved: false,
+  });
+}
+
+/**
  * Rechaza una entrada con foto: borra el blob de Storage y elimina el
  * doc del muro. La decisión de moderación es por entrada completa
  * (igual que el comportamiento previo del botón "Rechazar").
