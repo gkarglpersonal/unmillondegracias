@@ -35,10 +35,13 @@ service cloud.firestore {
     // submittingRef anti doble-clic en ParticipationForm. Follow-up para
     // fase futura si aparece spam real.
     //
-    // FK suave: validamos formato (Firestore ID = 20 chars alfanuméricos +
-    // `_` y `-`) de contributionId y tripItemId si están presentes. NO
-    // hacemos exists() porque costaría una read por write y complicaría el
-    // flujo público sin beneficio proporcional.
+    // FK suave: validamos formato de contributionId y tripItemId si están
+    // presentes. NO hacemos exists() porque costaría una read por write y
+    // complicaría el flujo público sin beneficio proporcional.
+    //  - contributionId: auto-ID de Firestore (20 chars alfanuméricos + `_-`).
+    //  - tripItemId: rango más amplio (6-64 chars) porque las 29 partidas
+    //    seedeadas usan IDs deterministas tipo `tripItem-01..29` (11 chars)
+    //    y los creados desde admin usan auto-ID de Firestore (20 chars).
     // ------------------------------------------------
     match /messageWall/{messageId} {
       allow read: if true;
@@ -66,7 +69,7 @@ service cloud.firestore {
         && (!('tripItemId' in request.resource.data)
             || request.resource.data.tripItemId == null
             || (request.resource.data.tripItemId is string
-                && request.resource.data.tripItemId.matches('^[A-Za-z0-9_-]{20}$')));
+                && request.resource.data.tripItemId.matches('^[A-Za-z0-9_-]{6,64}$')));
 
       allow update, delete: if isAdmin();
     }
@@ -94,7 +97,7 @@ service cloud.firestore {
         && (!('tripItemId' in request.resource.data)
             || request.resource.data.tripItemId == null
             || (request.resource.data.tripItemId is string
-                && request.resource.data.tripItemId.matches('^[A-Za-z0-9_-]{20}$')));
+                && request.resource.data.tripItemId.matches('^[A-Za-z0-9_-]{6,64}$')));
 
       allow update, delete: if isAdmin();
     }
