@@ -28,6 +28,17 @@ service cloud.firestore {
     // ------------------------------------------------
     // messageWall — mirror público (nombre, mensaje, foto si aprobada)
     // Cualquiera puede crear con shape válido. Solo admin edita/borra.
+    //
+    // NOTA: rate limiting honesto requiere Cloud Functions. Sin ellas, no
+    // hay forma de bloquear envíos repetidos del mismo email/IP en N segundos
+    // desde rules. Mitigación actual: validación de formato + UI con
+    // submittingRef anti doble-clic en ParticipationForm. Follow-up para
+    // fase futura si aparece spam real.
+    //
+    // FK suave: validamos formato (Firestore ID = 20 chars alfanuméricos +
+    // `_` y `-`) de contributionId y tripItemId si están presentes. NO
+    // hacemos exists() porque costaría una read por write y complicaría el
+    // flujo público sin beneficio proporcional.
     // ------------------------------------------------
     match /messageWall/{messageId} {
       allow read: if true;
@@ -48,7 +59,14 @@ service cloud.firestore {
         && (!('photoStoragePath' in request.resource.data)
             || request.resource.data.photoStoragePath == null
             || (request.resource.data.photoStoragePath is string
-                && request.resource.data.photoStoragePath.matches('^photos/pending/.*')));
+                && request.resource.data.photoStoragePath.matches('^photos/pending/.*')))
+        && (!('contributionId' in request.resource.data)
+            || (request.resource.data.contributionId is string
+                && request.resource.data.contributionId.matches('^[A-Za-z0-9_-]{20}$')))
+        && (!('tripItemId' in request.resource.data)
+            || request.resource.data.tripItemId == null
+            || (request.resource.data.tripItemId is string
+                && request.resource.data.tripItemId.matches('^[A-Za-z0-9_-]{20}$')));
 
       allow update, delete: if isAdmin();
     }
@@ -68,7 +86,11 @@ service cloud.firestore {
         && request.resource.data.email is string
         && request.resource.data.email.matches('^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$')
         && request.resource.data.paymentStatus == 'pending'
-        && (request.resource.data.amount == null || (request.resource.data.amount is number && request.resource.data.amount >= 0 && request.resource.data.amount <= 100000));
+        && (request.resource.data.amount == null || (request.resource.data.amount is number && request.resource.data.amount >= 0 && request.resource.data.amount <= 100000))
+        && (!('tripItemId' in request.resource.data)
+            || request.resource.data.tripItemId == null
+            || (request.resource.data.tripItemId is string
+                && request.resource.data.tripItemId.matches('^[A-Za-z0-9_-]{20}$')));
 
       allow update, delete: if isAdmin();
     }
