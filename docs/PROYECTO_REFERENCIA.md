@@ -1,6 +1,6 @@
 # unmillondegracias.com — Documento de referencia maestro
 
-*Última actualización: 2 de mayo de 2026*
+*Última actualización: 2 de mayo de 2026 (auditoría pre-lanzamiento aplicada)*
 
 ---
 
@@ -171,9 +171,23 @@ Verificar con: `gsutil cors get gs://mariangeles-viaje-32169.firebasestorage.app
 - ✅ Paginación admin con cursor (50 docs/página) en mensajes y aportaciones
 - ✅ Moderación de fotos con dos acciones distintas (rechazar foto vs borrar entrada)
 - ✅ Conteo real de contribuciones al borrar una partida (hard delete)
+- ✅ **Auditoría pre-lanzamiento aplicada (2 mayo 2026)** — 8 hallazgos cerrados en dos olas (C1, C2, C3, I2, I4, I6, I7, I12). Detalle en [`HISTORIAL_TECNICO.md`](HISTORIAL_TECNICO.md):
+  - Validación de tamaño de `message` en rules de `contributions` (prev. solo en messageWall)
+  - Reintentos con backoff exponencial en EmailJS + `pangea_status` en correo al admin si los reintentos fallan
+  - Eliminado timeout 2 s en hooks de Firestore (causaba estado vacío engañoso en redes lentas)
+  - `error` expuesto en cada hook para feedback futuro de "conexión perdida"
+  - `submittingRef` síncrono en `ManualContributionForm` (mismo patrón que el form público)
+  - `overflow-wrap: anywhere` en mensajes para URLs largas
+  - Touch targets ≥44 px en `FormModal.closeBtn` y CTA "Regalar"
+  - `ErrorBoundary` global con fallback en castellano y enlace de contacto
+- ✅ Plan EmailJS subido a 2.000 emails/mes (margen amplio para 100+ aportaciones × 2 emails)
 - 🚀 **Lista para lanzamiento: lunes 5 de mayo de 2026 — sin puntos técnicos pendientes bloqueantes**
 
-**Riesgos residuales conocidos** (no bloquean el lanzamiento, documentados en [`docs/HISTORIAL_TECNICO.md`](HISTORIAL_TECNICO.md) y en el report de Fase 3):
+**Riesgos residuales conocidos** (no bloquean el lanzamiento, documentados en [`docs/HISTORIAL_TECNICO.md`](HISTORIAL_TECNICO.md)):
 - Paginación admin pierde reactividad en docs >50 (hace falta refrescar para ver cambios en docs viejos).
 - FK suave en rules acepta IDs con formato válido pero sin doc real (impacto bajo: huérfano detectable por admin).
 - Sin rate limiting honesto en rules — requiere Cloud Functions; mitigado por anti doble-clic en cliente y validación RGPD.
+- Fallo transitorio puntual de EmailJS: la contribución queda guardada y `notifyAdmin` recibe `pangea_status: 'failed'`; el admin atiende manualmente. Probabilidad baja con plan de 2.000 emails/mes y 3 reintentos con backoff.
+
+**Hallazgos de la auditoría diferidos a post-lanzamiento (no bloqueantes):**
+- I1 (seed.js no preserva contadores en re-ejecución), I5 (`ManualContributionForm.row2` colapsa en mobile estrecho), I8 (`HeroSection .portraitWrap` 320 px fijos en mobile landscape), I9 (`SuccessOverlay z-index: 1000` hardcoded vs sistema de tokens), I10 (`setMessageHidden`/`deleteMessage` propagan errores sin handler), I11 (paginación admin no totalmente reactiva, ya documentado arriba), y todos los menores M1–M10.

@@ -1,6 +1,6 @@
 # unmillondegracias.com — Tarjeta de referencia rápida
 
-*Para consulta rápida al inicio de cualquier conversación*
+*Para consulta rápida al inicio de cualquier conversación · actualizado 2 mayo 2026 (auditoría pre-lanzamiento aplicada)*
 
 ---
 
@@ -67,9 +67,11 @@ gsutil cors set cors.json gs://mariangeles-viaje-32169.firebasestorage.app
 ✅ Formulario funcional (emails a Gerry y PANGEA, form sidebar se limpia tras enviar)  
 ✅ Admin funcional (mensajes, fotos, aportaciones, partidas, exportar)  
 ✅ CORS configurado · Authorized domains configurado  
-✅ **Fase 1, 2 y 3 completadas** (auditoría + 28/30 puntos cerrados, cero diferidos a Fase 4)  
-✅ Correcciones post-Fase 3 aplicadas y desplegadas (smoke test del 2 mayo): borrar aportación conserva mensaje y foto, aviso en rojo al eliminar sección con aportaciones, fix `No document to update`  
-✅ RGPD checkbox · errores específicos · paginación admin · 2 acciones de moderación de fotos · FK suave en rules  
+✅ **Fase 1, 2, 3 completadas + auditoría pre-lanzamiento aplicada** (8 hallazgos cerrados: C1, C2, C3, I2, I4, I6, I7, I12)  
+✅ Plan EmailJS subido a 2.000 emails/mes · 3 reintentos con backoff · `pangea_status` en correo al admin si fallan  
+✅ Rules de `contributions` validan `message.size() <= 2000` · ErrorBoundary global con fallback en castellano  
+✅ Hooks de Firestore sin timeout 2s (estado vacío engañoso en redes lentas eliminado) · `error` expuesto para feedback futuro  
+✅ Touch targets ≥44 px en CTA Regalar y closeBtn · `submittingRef` síncrono en ManualContributionForm · `overflow-wrap` en mensajes  
 🚀 **Lanzamiento: lunes 5 mayo 2026 — sin puntos técnicos pendientes bloqueantes**
 
 ## Riesgos residuales conocidos (no bloquean)
@@ -77,6 +79,11 @@ gsutil cors set cors.json gs://mariangeles-viaje-32169.firebasestorage.app
 - Paginación admin no es totalmente reactiva en docs >50 (refrescar para ver cambios en docs viejos)
 - FK suave en rules acepta IDs con formato válido sin doc real (impacto bajo)
 - Sin rate limiting honesto en rules (requiere Cloud Functions; mitigado por anti doble-clic + RGPD)
+- Fallo transitorio puntual de EmailJS: contribución guardada, `notifyAdmin` recibe `pangea_status: 'failed'`; admin atiende manualmente
+
+## Diferidos a post-lanzamiento (no urgente)
+
+I1 (seed.js no preserva contadores), I5 (admin row2 sin media query), I8 (HeroSection 320 px en landscape), I9 (z-index hardcoded), I10 (errores sin handler en setMessageHidden), I11 (paginación admin), M1–M10 (pulido y tech debt menor). Detalle en HISTORIAL_TECNICO.md.
 
 ## Si algo falla — checklist rápido
 
@@ -84,4 +91,6 @@ gsutil cors set cors.json gs://mariangeles-viaje-32169.firebasestorage.app
 **Login admin falla:** Verificar Authorized domains en Firebase Auth  
 **Deploy no llega a producción:** Usar deploy manual, no GitHub Actions  
 **Contadores descuadrados:** Las transacciones son atómicas dentro de Firestore; Storage es compensatorio  
-**Email no llega:** Verificar cuota EmailJS (200/mes en plan free); comprobar templates en EmailJS dashboard
+**Email no llega a PANGEA:** El cliente reintenta 3 veces con backoff. Si todos fallan, el correo a Gerry incluye `pangea_status: 'failed'` para atender manualmente. Comprobar plan EmailJS (2.000/mes) y templates  
+**Pantalla blanca al cargar:** Error en render — el ErrorBoundary muestra fallback "Algo ha fallado" con botón Recargar. Causa real en consola (`ErrorBoundary capturó:`)  
+**Termómetros vacíos en mobile:** Ya no debería pasar (timeout 2 s eliminado). Si pasa: red genuinamente caída, `error` del hook lo confirma; en el futuro un consumer puede mostrar "Conexión perdida"

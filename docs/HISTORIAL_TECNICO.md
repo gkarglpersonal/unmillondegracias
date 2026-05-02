@@ -1,6 +1,6 @@
 # unmillondegracias.com — Historial técnico y lecciones aprendidas
 
-*Última actualización: 2 de mayo de 2026*
+*Última actualización: 2 de mayo de 2026 (auditoría pre-lanzamiento)*
 
 ---
 
@@ -63,6 +63,62 @@ Highlights:
 3. **Sin rate limiting honesto en rules** — requiere Cloud Functions para contar requests por email/IP. Mitigación actual: validación de formato + `submittingRef` anti doble-clic + checkbox RGPD obligatorio. Documentado como follow-up explícito en el comentario de `firestore.rules`.
 
 **Report completo:** [`docs/audits/2026-05-02-fase-3-deferidos.md`](audits/2026-05-02-fase-3-deferidos.md)
+
+### Auditoría pre-lanzamiento (2 mayo 2026, completada)
+
+Tercera auditoría exhaustiva del proyecto antes del lanzamiento del lunes 5 de mayo. Tres agentes paralelos cubrieron responsive/visual, UX y funcionalidad/Firebase. Tras descartar las exageraciones de los agentes (al verificar contra el código, varios de los "críticos" reportados resultaron ya estar blindados), el informe consolidado dejó:
+
+- **3 críticos**: C1 (EmailJS sin reintento), C2 (rules sin validar tamaño de `message` en `contributions`), C3 (timeout 2 s en hooks fuerza estado vacío).
+- **12 importantes**, de los cuales el usuario priorizó 6 para tocar antes del lanzamiento: C1 (degradado tras subir el plan EmailJS a 2.000/mes), I2, I4, I6, I7, I12.
+- **10 menores**, todos diferidos a post-lanzamiento.
+
+Resueltos en dos olas con el patrón validado en fases anteriores: agentes paralelos sobre archivos disjuntos en Ola 1, agente único sobre archivos compartidos en Ola 2. **Build verde como gate antes de cada commit, QA independiente después de cada ola.**
+
+#### Ola 1 — fixes paralelos (6 commits, archivos disjuntos)
+
+| Fix | Problema | Solución | Archivos | Commit |
+|---|---|---|---|---|
+| C2 | Rules de `contributions` no validaban `message.size()` (sí en `messageWall` a 2000 chars). Vector de DoS de almacenamiento. | Validación análoga a la de `tripItemId`: campo opcional, ausente, null o string ≤ 2000. Deploy con `firebase deploy --only firestore:rules`. | `firestore.rules` | `993c9b5` |
+| C1 | `notifyPangea` y `notifyAdmin` lanzaban un solo intento. Un fallo transitorio dejaba la contribución guardada sin aviso a PANGEA. | Helper interno `sendWithRetry(serviceId, templateId, params, maxAttempts=3)` con backoff exponencial 0/300/900 ms. `notifyAdmin` recibe `pangeaStatus` ('ok' / 'failed' / 'no-amount') que se pasa al template como `pangea_status` para que el correo al admin diga si hay que atender manualmente. | `src/firebase/email.js`, `src/components/form/ParticipationForm.jsx` | `0a39eaa` |
+| I2 | `ManualContributionForm` solo tenía `disabled={busy}` (estado React asíncrono). Doble clic podía crear dos aportaciones con IDs distintos y duplicar contadores. | `submittingRef` síncrono con guard al inicio del handler y liberación en `finally`. Mismo patrón que `ParticipationForm.jsx`. | `src/components/admin/ManualContributionForm.jsx` | `345c723` |
+| I6 | Mensajes con URL larga sin espacios rompían el layout masonry del muro. | `overflow-wrap: anywhere` en `.text` (rompe palabras solo cuando es estrictamente necesario; `word-break: break-all` rompería palabras normales). | `src/components/messages/MessageCard.module.css` | `5f853ec` |
+| I7 | Touch targets bajo el mínimo WCAG 2.1 AA de 44 px. | `closeBtn` 36→44 px. CTA "Regalar" `min-height: 44px` sin tocar padding visual; `.btn` global ya trae `display: inline-flex` + `align-items: center`, así el texto queda centrado. | `src/components/form/FormModal.module.css`, `src/components/thermometers/TripItemCard.module.css` | `95edf18` |
+| I12 | Sin error boundary global: un throw en render desmontaba todo el árbol y dejaba pantalla blanca sin diagnóstico. | Class component minimal en `src/components/ErrorBoundary.jsx` con `getDerivedStateFromError` y `componentDidCatch`. Fallback estático con copy en castellano de Madrid, botón "Recargar página" y enlace de contacto. Estilos inline para no depender de CSS Modules. Envuelto alrededor de `<App />` dentro de `BrowserRouter`. | `src/components/ErrorBoundary.jsx` (nuevo), `src/main.jsx` | `7b9bd6a` |
+
+QA de Ola 1: 6/6 PASS. Push, `firebase deploy --only firestore:rules`, `npm run build && npx gh-pages -d dist`.
+
+#### Ola 2 — hooks de Firestore (1 commit, archivos compartidos)
+
+C3 + I4 son la misma refactorización de los 6 hooks. Un único commit combinado.
+
+| Fix | Problema | Solución | Commit |
+|---|---|---|---|
+| C3 | `setTimeout(2000)` en cada hook forzaba `loading=false` aunque Firestore no hubiera respondido. En 3G/4G en mala cobertura, el usuario veía termómetros vacíos y contador a 0 como si el regalo no hubiera empezado. | Timeout eliminado en los 6 hooks. `loading=true` se mantiene hasta que el listener responda con datos o con error. | `997df9e` |
+| I4 | Errores reales del listener (no `permission-denied`) se silenciaban con `console.warn`. La UI no podía mostrar "conexión perdida". | Cada hook expone `error` en su return. Subscribers extendidos con un callback de error opcional: `subscribeVisibleMessages(callback, errorCallback)`, `subscribeApprovedPhotos(callback, errorCallback)`, `subscribeRecentContributions(callback, n, errorCallback)`, `subscribeSections(callback, errorCallback)`, `subscribeTripItems(callback, { onlyActive, onError })`. Helper `makeListenerError(externalCallback)` compone log interno + callback externo y filtra `permission-denied`. **Retrocompatible**: consumers actuales siguen funcionando porque solo leen `items` y `loading`. | `997df9e` |
+
+QA de Ola 2: 6/6 PASS. Push, `npm run build && npx gh-pages -d dist`.
+
+**Lecciones técnicas registradas:**
+
+- **Verificar siempre los reportes de auditoría antes de tocar código**: tres "críticos" reportados por los agentes (`markContributionPaid` doble-clic, cleanup incompleto en `ParticipationForm`, FormModal ESC durante éxito) resultaron ya estar correctamente blindados al verificar contra el código real. Los agentes en modo Explore tienden a marcar como crítico cualquier patrón que parece riesgoso en lectura superficial; el filtro humano post-agente es esencial.
+- **`useRef` síncrono > `useState` asíncrono para anti doble-clic**: `setBusy(true)` se aplica en el siguiente render, no en el tick actual. Un segundo evento click que entra en el mismo tick antes del re-render no ve `busy=true`. `useRef` se actualiza inmediatamente en la asignación, así el segundo evento sí ve `current=true` y retorna sin tocar Firestore. Patrón aplicado consistentemente en `ParticipationForm` (Fase 1) y `ManualContributionForm` (auditoría pre-lanzamiento).
+- **Reintentos de email en cliente: backoff exponencial corto + transparencia al admin**: 3 intentos con esperas de 0/300/900 ms cubren el grueso de los fallos transitorios sin alargar la espera del usuario más de ~1.2 s en peor caso. Si todo falla, se pasa el estado a `notifyAdmin` para que el correo al admin diga claramente si hay que atender el cobro manualmente. Más sofisticación (cola persistente, Cloud Functions) no merece la pena con plan EmailJS de 2.000/mes.
+- **Eliminar timeouts cuando ya no resuelven el problema original**: el timeout 2 s vivía como salvavidas para el caso "Firestore no provisionado" (errores síncronos `INTERNAL ASSERTION FAILED`). Una vez Firestore está provisionado y funcionando, el timeout solo causa un falso "estado vacío" en redes lentas. El supresor de errores en `main.jsx` sigue cubriendo el caso original; el timeout no aporta nada.
+- **Retrocompatibilidad por composición de callbacks**: para añadir un canal nuevo (callback de error) a wrappers existentes (`subscribeXxx`) sin romper consumers actuales, el patrón `makeListenerError(externalCallback)` que compone el log interno con el callback externo opcional es más limpio que duplicar las firmas o crear funciones nuevas. Los consumers que no pasan callback siguen funcionando como antes.
+- **Error boundary con estilos inline**: el fallback debe ser autónomo. Si el render falla en una etapa temprana de la app, los CSS Modules pueden no haber cargado todavía. Estilos inline garantizan que el fallback se ve correctamente sin depender de nada externo.
+
+**Hallazgos diferidos a post-lanzamiento (documentados, aceptados):**
+- I1 — `scripts/seed.js` no preserva contadores existentes al re-ejecutarse. Bajo riesgo (admin no debería re-seedear con contribuciones vivas) pero merece arreglo.
+- I5 — `ManualContributionForm.module.css .row2` con `grid-template-columns: 1fr 1fr` sin media query mobile. Solo afecta al admin abierto en móvil estrecho.
+- I8 — `HeroSection .portraitWrap` 320 px fijos en mobile portrait (~50 % viewport). En landscape mobile (~85 %) deja poco sitio al copy.
+- I9 — `SuccessOverlay z-index: 1000` hardcoded vs sistema de tokens. No causa bug porque es la capa más alta hoy.
+- I10 — `setMessageHidden` y `deleteMessage` propagan errores al caller sin handler interno. Riesgo de unhandled promise rejection si algún botón olvida envolver.
+- I11 — Paginación admin no totalmente reactiva en docs >50 (ya documentado en Fase 3).
+- M1–M10 — pulido, accesibilidad menor y tech debt sin impacto en lanzamiento.
+
+**Report completo de la auditoría:** [`docs/audits/2026-05-02-auditoria-pre-lanzamiento.md`](audits/2026-05-02-auditoria-pre-lanzamiento.md) (si decidimos versionar el report) o conversación de la sesión Claude Code del 2 de mayo de 2026.
+
+---
 
 ### Correcciones post-Fase 3 (2 mayo 2026)
 
@@ -213,11 +269,14 @@ El proyecto usó un patrón de trabajo en fases con agentes paralelos y QA indep
 
 ## Puntos pendientes técnicos
 
-Tras el cierre de la Fase 3 (2 mayo 2026), no quedan puntos técnicos bloqueantes para el lanzamiento. Las tres fases de fixes (críticos, mejoras, diferidos) están completadas con sus reports en [`docs/audits/`](audits/).
+Tras el cierre de la auditoría pre-lanzamiento (2 mayo 2026), no quedan puntos técnicos bloqueantes para el lanzamiento del 5 de mayo. Las cuatro intervenciones (Fases 1, 2, 3 y la auditoría pre-lanzamiento) están completadas, con sus reports y commits versionados.
 
 **Mejoras post-lanzamiento candidatas** (no bloquean):
 - Bundle JS principal supera 500 kB (Firebase + pdf-lib + jszip + heic2any). Code-splitting con dynamic imports si se quiere reducir tiempo de primer render en mobile lento.
-- Lint sigue mostrando 1884 errores reales de `react-hooks/exhaustive-deps` y similares (post-fix de globals en Fase 2). Saneamiento opcional, no afecta funcionamiento.
+- Lint sigue mostrando ~1884 errores reales de `react-hooks/exhaustive-deps` y similares (post-fix de globals en Fase 2). Saneamiento opcional, no afecta funcionamiento.
 - Rate limiting honesto en `messageWall.create` requeriría Cloud Functions. Solo necesario si aparece spam real.
 - `getCountFromServer` para el conteo del modal hard delete si crece a miles de mensajes por partida (hoy carga todos los docs filtrados; trivial para volúmenes esperados).
 - Migrar paginación admin a una estrategia totalmente reactiva si el flujo de moderación se vuelve concurrente (hoy: un solo admin, riesgo nulo).
+- I1, I5, I8, I9, I10, I11 + menores M1–M10 de la auditoría pre-lanzamiento (detalle en la sección correspondiente).
+- Cola persistente de emails con Cloud Functions si EmailJS empieza a fallar de forma sistemática (hoy: 3 reintentos en cliente con backoff + `pangea_status` al admin como red de seguridad).
+- UI consumer del nuevo campo `error` en hooks de Firestore: hoy retrocompatible (consumers ignoran el campo), un follow-up podría añadir banner "Conexión perdida" en componentes públicos clave (HeroSection, ThermometersGrid, MessagesWall, PhotoGallery).
