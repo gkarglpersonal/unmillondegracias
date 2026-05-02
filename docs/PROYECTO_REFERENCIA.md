@@ -1,6 +1,6 @@
 # unmillondegracias.com — Documento de referencia maestro
 
-*Última actualización: 2 de mayo de 2026 (auditoría pre-lanzamiento aplicada)*
+*Última actualización: 2 de mayo de 2026 (auditoría pre-lanzamiento + dos fixes urgentes posteriores con smoke test E2E confirmado)*
 
 ---
 
@@ -181,6 +181,10 @@ Verificar con: `gsutil cors get gs://mariangeles-viaje-32169.firebasestorage.app
   - Touch targets ≥44 px en `FormModal.closeBtn` y CTA "Regalar"
   - `ErrorBoundary` global con fallback en castellano y enlace de contacto
 - ✅ Plan EmailJS subido a 2.000 emails/mes (margen amplio para 100+ aportaciones × 2 emails)
+- ✅ **Correcciones urgentes post-auditoría aplicadas y desplegadas (2 mayo, tras el primer envío real)** — detalle en [`HISTORIAL_TECNICO.md`](HISTORIAL_TECNICO.md):
+  - Bug del regex de `tripItemId` en rules: `^[A-Za-z0-9_-]{20}$` exigía 20 chars exactos pero los IDs reales del seed son `tripItem-01..29` (11 chars). Toda aportación a partida concreta era rechazada con `permission-denied`. Regex relajado a `{6,64}` para cubrir IDs deterministas + auto-IDs. Rules redesplegadas (commit `7f27511`).
+  - Confirmación de escritura con `waitForPendingWrites`: `setDoc` resolvía contra cache local sin esperar al servidor (persistencia offline activa). Una red mala podía dejar la escritura solo en local mientras la UI mostraba "guardado". Ahora se exige ack del servidor con timeout de 15 s antes de declarar éxito; si timeout, copy específico ("comprueba tu conexión") y NO se hace cleanup local. Copy de `errors.save` reescrito para no afirmar falsamente "hemos llegado a guardar". Nuevo `errors.serverTimeout` (commit `4fb74bc`).
+- ✅ **Smoke test end-to-end confirmado**: la primera participación real del proyecto (esposa de Gerry, con partida concreta) se guardó correctamente en Firestore y apareció en `/admin` tras desplegar los dos fixes urgentes. Camino completo verificado: cliente público → rule acepta → `waitForPendingWrites` → `notifyPangea` → `notifyAdmin` → `SuccessOverlay` → doc visible en admin.
 - 🚀 **Lista para lanzamiento: lunes 5 de mayo de 2026 — sin puntos técnicos pendientes bloqueantes**
 
 **Riesgos residuales conocidos** (no bloquean el lanzamiento, documentados en [`docs/HISTORIAL_TECNICO.md`](HISTORIAL_TECNICO.md)):

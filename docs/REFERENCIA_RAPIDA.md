@@ -1,6 +1,6 @@
 # unmillondegracias.com — Tarjeta de referencia rápida
 
-*Para consulta rápida al inicio de cualquier conversación · actualizado 2 mayo 2026 (auditoría pre-lanzamiento aplicada)*
+*Para consulta rápida al inicio de cualquier conversación · actualizado 2 mayo 2026 (auditoría pre-lanzamiento + dos fixes urgentes posteriores con E2E confirmado)*
 
 ---
 
@@ -72,6 +72,9 @@ gsutil cors set cors.json gs://mariangeles-viaje-32169.firebasestorage.app
 ✅ Rules de `contributions` validan `message.size() <= 2000` · ErrorBoundary global con fallback en castellano  
 ✅ Hooks de Firestore sin timeout 2s (estado vacío engañoso en redes lentas eliminado) · `error` expuesto para feedback futuro  
 ✅ Touch targets ≥44 px en CTA Regalar y closeBtn · `submittingRef` síncrono en ManualContributionForm · `overflow-wrap` en mensajes  
+✅ **Fix urgente bug regex tripItemId** (Fase 3 dejó `{20}` que rechazaba IDs deterministas `tripItem-01..29`) — relajado a `{6,64}` (commit `7f27511`)  
+✅ **Fix urgente confirmación de escritura** (`setDoc` de Firestore resuelve contra cache local; sin `waitForPendingWrites` la UI podía decir "guardado" cuando el dato nunca llegó al servidor) — timeout 15 s + copy honesto (commit `4fb74bc`)  
+✅ **Primera participación real confirmada en Firestore + admin** tras los dos fixes urgentes (smoke test E2E completo)  
 🚀 **Lanzamiento: lunes 5 mayo 2026 — sin puntos técnicos pendientes bloqueantes**
 
 ## Riesgos residuales conocidos (no bloquean)
@@ -93,4 +96,6 @@ I1 (seed.js no preserva contadores), I5 (admin row2 sin media query), I8 (HeroSe
 **Contadores descuadrados:** Las transacciones son atómicas dentro de Firestore; Storage es compensatorio  
 **Email no llega a PANGEA:** El cliente reintenta 3 veces con backoff. Si todos fallan, el correo a Gerry incluye `pangea_status: 'failed'` para atender manualmente. Comprobar plan EmailJS (2.000/mes) y templates  
 **Pantalla blanca al cargar:** Error en render — el ErrorBoundary muestra fallback "Algo ha fallado" con botón Recargar. Causa real en consola (`ErrorBoundary capturó:`)  
-**Termómetros vacíos en mobile:** Ya no debería pasar (timeout 2 s eliminado). Si pasa: red genuinamente caída, `error` del hook lo confirma; en el futuro un consumer puede mostrar "Conexión perdida"
+**Termómetros vacíos en mobile:** Ya no debería pasar (timeout 2 s eliminado). Si pasa: red genuinamente caída, `error` del hook lo confirma; en el futuro un consumer puede mostrar "Conexión perdida"  
+**Formulario rechaza con `errors.save` o `errors.serverTimeout`:** Si dice "no hemos podido guardar", inspeccionar `firestore.rules` — el regex de `tripItemId` debe permitir tanto IDs deterministas (`tripItem-XX`, 11 chars) como auto-IDs de Firestore (20 chars). Si dice "no hemos podido confirmar que tu participación llegara al servidor", el cliente está offline o muy lento; comprobar la conexión y reintentar (los IDs se conservan, no se duplica)  
+**Tras `firebase deploy --only firestore:rules` algo deja de funcionar:** Smoke test E2E manual obligatorio antes de declarar deploy verde — crear al menos una contribución que cubra todas las ramas (`tripItemId: null` y `tripItemId: 'tripItem-XX'`, mensaje vacío y con texto). Las pruebas de admin no detectan bugs de validación del formulario público porque `createManualContribution` es una transacción distinta

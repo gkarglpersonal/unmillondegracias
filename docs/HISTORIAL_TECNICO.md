@@ -141,6 +141,49 @@ Smoke test tras el merge de Fase 3 destapó cinco correcciones adicionales en el
 - **Reset de RHF al éxito**: la variante `modal` esconde el problema del form persistente porque el componente se desmonta. La variante `sidebar` (desktop) sí queda montada y necesita `reset()` explícito.
 - **Aviso en modales destructivos**: cuando una operación destructiva tiene consecuencias variables según los datos, el modal debe consultar el estado real al abrirse y mostrar el conteo, no confiar en agregados aproximados (lección compartida con la corrección C-2 de Fase 3).
 
+### Correcciones urgentes post-auditoría (2 mayo 2026)
+
+Tras la auditoría pre-lanzamiento, la esposa de Gerry intentó hacer la primera participación real desde el formulario público y vio el copy `errors.save` ("Hemos llegado a guardar tu participación pero algo se ha cortado"). La participación NO apareció ni en Firestore ni en el panel admin. Reportado como prioridad máxima antes del lanzamiento del lunes. Diagnóstico y dos fixes desplegados el mismo día.
+
+#### Fix urgente 1 — Bug del regex de `tripItemId` en rules de Firestore
+
+| Aspecto | Detalle |
+|---|---|
+| **Síntoma** | Toda aportación dirigida a una partida concreta era rechazada por la rule con `permission-denied`. Solo pasaban las de "fondo general" (`tripItemId: null`). El usuario veía el copy de `errors.save` y asumía que no había forma de reintentar. |
+| **Causa raíz** | El regex `^[A-Za-z0-9_-]{20}$` introducido en Fase 3 (commit `0ed6210`) exigía exactamente 20 caracteres. Pero los IDs reales de las 29 partidas seedeadas son `tripItem-01`...`tripItem-29` (11 caracteres). El regex daba por sentado que todos los IDs son auto-IDs de Firestore. |
+| **Tiempo en producción** | ~12 horas. Las pruebas previas durante Fase 3 cubrieron el flujo de admin (`createManualContribution`) y el formulario público con fondo general (`tripItemId: null`); ningún test cubrió aportación a partida concreta desde el formulario. |
+| **Fix** | Regex relajado a `^[A-Za-z0-9_-]{6,64}$` en las dos reglas afectadas (`messageWall.create` y `contributions.create`). Cubre los IDs deterministas del seed (11) y los auto-IDs de Firestore que genera el admin al crear partidas nuevas (20). El regex de `contributionId` se conserva en `{20}` porque ese sí es siempre auto-ID. |
+| **Commit + deploy** | `7f27511` con `firebase deploy --only firestore:rules` inmediato. |
+
+#### Fix urgente 2 — Confirmación de escritura con `waitForPendingWrites` + copy honesto
+
+| Aspecto | Detalle |
+|---|---|
+| **Síntoma colateral descubierto** | El copy `errors.save` decía "Hemos llegado a guardar tu participación pero algo se ha cortado" — engañoso porque la verdad era "no llegamos a guardar nada" (el cleanup compensatorio borraba cualquier doc parcial). |
+| **Sutileza del SDK detectada** | Firestore tiene persistencia offline activa por defecto: `setDoc` resuelve la promise contra cache local, NO contra el servidor. Una red mala podía dejar la escritura solo en local y, si el usuario cerraba la pestaña antes de reconectar, se perdería — mientras la UI mostraba "guardado". Aplicable más allá del bug del regex: cualquier formulario que haga writes a Firestore tiene el mismo problema latente. |
+| **Fix** | (a) Helper `awaitServerAck()` en `src/firebase/contributions.js` con `waitForPendingWrites(db)` y timeout de 15 s. Si el ack no llega, lanza `Error` con `code: 'server-ack-timeout'`. Aplicado en `createContribution` y `createManualContribution` tras los `setDoc`. (b) `ParticipationForm` distingue `code === 'server-ack-timeout'` y **omite el cleanup local** en ese caso (las escrituras siguen pendientes en cache; añadir `deleteDoc` encolaría operaciones que, si la pestaña se cierra antes de sincronizar todo, podrían dejar `setDoc` sin `deleteDoc` → docs huérfanos). (c) Copy honesto: `errors.save` reescrito ("No hemos podido guardar tu participación. Pulsa Reintentar — si vuelve a fallar, escríbeme a gerardo.kargl@gmail.com"). Nuevo `errors.serverTimeout` para el caso específico ("No hemos podido confirmar que tu participación llegara al servidor. Comprueba tu conexión y pulsa Reintentar — no se duplicará."). El warning del `SuccessOverlay` se conserva: ahora que `waitForPendingWrites` confirma la escritura antes de llegar ahí, "se ha guardado correctamente" SÍ es honesto. |
+| **Commit + deploy** | `4fb74bc` con `npm run build && npx gh-pages -d dist`. |
+
+#### Smoke test end-to-end confirmado
+
+Tras los dos fixes desplegados, la esposa de Gerry reintentó la participación con los mismos datos a la misma partida concreta. **Funcionó: la contribución se guardó en Firestore y apareció en el panel admin.** Es la primera participación real del proyecto, lo que también valida el flujo end-to-end completo:
+
+- Cliente público → `setDoc` con `tripItemId: 'tripItem-XX'`
+- Rule de Firestore acepta (regex relajado)
+- `waitForPendingWrites` confirma ack del servidor
+- `notifyPangea` envía correo (con reintentos del fix C1)
+- `notifyAdmin` envía correo a Gerry
+- `SuccessOverlay` aparece con copy honesto
+- Doc visible en `/admin` → "Aportaciones"
+
+**Lecciones técnicas registradas:**
+
+- **Las rules de Firestore necesitan smoke test E2E del camino más común tras cada deploy.** El admin no expone los mismos códigos de validación que el formulario público (`createManualContribution` es una transacción distinta de `createContribution`). En Fase 3 las pruebas se quedaron en admin y fondo general; el camino "formulario público + partida concreta" jamás se ejecutó hasta el primer envío real, 12 horas después. Antes de cualquier `firebase deploy --only firestore:rules`, ejecutar al menos una creación que cubra todas las ramas de validación: `tripItemId: null`, `tripItemId: 'tripItem-XX'`, mensaje vacío, mensaje con texto, etc.
+- **Validación de formato de IDs en rules: enumerar TODOS los formatos posibles, no solo el más común.** El regex `{20}` daba por sentado que solo había auto-IDs. Lo correcto es identificar los formatos legítimos del proyecto (deterministas del seed + auto-IDs del admin) y construir un rango que cubra ambos con margen. La FK suave debe ser permisiva en el rango y estricta en el alfabeto.
+- **`setDoc` con persistencia offline NO espera al servidor.** Esta es una característica del SDK que no es obvia leyendo la firma. Cualquier formulario público que afirme "guardado" tras un `setDoc` está mintiendo silenciosamente cuando la red está caída. La solución es `waitForPendingWrites(db)` con timeout, aplicado tras todas las escrituras del flujo. Aplicable también a otras operaciones admin (`markContributionPaid`, `unmarkContributionPaid`, `deleteContribution`, `updateContributionAmount`); de momento NO se han modificado porque el riesgo es menor (un solo admin, normalmente con buena red), pero queda como follow-up.
+- **Cleanup compensatorio: pensar en el caso "escrituras pendientes en cache".** Cuando una operación falla con `server-ack-timeout`, las escrituras anteriores siguen pendientes en cache local. Encolar `deleteDoc` para "limpiar" puede dejar el sistema en un estado peor (docs huérfanos si la pestaña se cierra antes de sincronizar todo). Mejor: no tocar nada y dejar que `setDoc` idempotente se aplique cuando reconecte; si el usuario reintenta, los IDs son los mismos.
+- **Copy de error: describir el estado real, no el deseado.** "Hemos llegado a guardar tu participación pero algo se ha cortado" sonaba a recovery posible, cuando en realidad no había nada guardado. La regla simple es: si no estás seguro de qué fase falló, no afirmes nada sobre lo que se hizo o no se hizo. "No hemos podido completar el envío. Vuelve a intentarlo." es mejor que cualquier afirmación falsa sobre el estado.
+
 ---
 
 ## Problemas resueltos y cómo
@@ -280,3 +323,5 @@ Tras el cierre de la auditoría pre-lanzamiento (2 mayo 2026), no quedan puntos 
 - I1, I5, I8, I9, I10, I11 + menores M1–M10 de la auditoría pre-lanzamiento (detalle en la sección correspondiente).
 - Cola persistente de emails con Cloud Functions si EmailJS empieza a fallar de forma sistemática (hoy: 3 reintentos en cliente con backoff + `pangea_status` al admin como red de seguridad).
 - UI consumer del nuevo campo `error` en hooks de Firestore: hoy retrocompatible (consumers ignoran el campo), un follow-up podría añadir banner "Conexión perdida" en componentes públicos clave (HeroSection, ThermometersGrid, MessagesWall, PhotoGallery).
+- Aplicar `waitForPendingWrites` también en las operaciones admin (`markContributionPaid`, `unmarkContributionPaid`, `deleteContribution`, `updateContributionAmount`) por consistencia. Riesgo bajo en el flujo actual (un solo admin, suele estar en buena red), pero la sutileza de `setDoc` resolviendo contra cache local existe igual.
+- Smoke test E2E automatizado de las rules tras cada deploy: ejecutar una creación pública desde un script que cubra todas las ramas de validación (tripItemId null vs concreta, mensaje vacío vs con texto, etc.) antes de declarar el deploy verde. Hoy el smoke test es manual y se hizo solo tras el bug de tripItemId regex.
