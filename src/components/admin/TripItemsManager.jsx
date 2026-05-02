@@ -18,8 +18,9 @@ import { CSS } from '@dnd-kit/utilities';
 import { GripVertical, Plus, Pencil, Trash2, Check, X, ChevronDown, ChevronRight, Archive, RotateCcw } from 'lucide-react';
 import { useTripItems } from '../../hooks/useTripItems.js';
 import { useSections } from '../../hooks/useSections.js';
+import { collection, getDocs, query, where } from 'firebase/firestore';
 import { useAuth } from '../../hooks/useAuth.jsx';
-import { auth } from '../../firebase/config.js';
+import { auth, db } from '../../firebase/config.js';
 import {
   createTripItem,
   updateTripItem,
@@ -895,7 +896,30 @@ function HardDeleteItemModal({ item, busy, onCancel, onConfirm }) {
     };
   }, [busy, onCancel]);
 
-  const contributorCount = item.contributorCount || 0;
+  // Conteo real consultando messageWall (mirror público que se reasignará al
+  // fondo general). El field item.contributorCount es aproximado (solo se
+  // incrementa al marcar pagada), no sirve como verdad para una decisión
+  // destructiva. null = cargando, number = listo, 'error' = falló.
+  const [realCount, setRealCount] = useState(null);
+  const fallbackCount = item.contributorCount || 0;
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const snap = await getDocs(
+          query(collection(db, 'messageWall'), where('tripItemId', '==', item.id))
+        );
+        if (!cancelled) setRealCount(snap.size);
+      } catch (err) {
+        console.warn('HardDeleteItemModal count query failed', err?.code || err);
+        if (!cancelled) setRealCount('error');
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [item.id]);
 
   return (
     <div className={styles.modalBackdrop} role="dialog" aria-modal="true" onClick={busy ? undefined : onCancel}>
@@ -903,10 +927,17 @@ function HardDeleteItemModal({ item, busy, onCancel, onConfirm }) {
         <h3 className={styles.modalTitle}>Eliminar permanentemente &laquo;{item.name}&raquo;</h3>
         <p className={styles.modalBody}>
           Esta acción borra la partida de la base de datos y no se puede deshacer.
-          {contributorCount > 0 ? (
+          {realCount === null ? (
+            <> Calculando aportaciones vinculadas&hellip;</>
+          ) : realCount === 'error' ? (
             <>
-              {' '}Hay <strong>{contributorCount}</strong>{' '}
-              {contributorCount === 1 ? 'persona vinculada' : 'personas vinculadas'} a esta partida. Sus aportaciones se reasignarán al fondo general (sin partida específica) antes de borrar.
+              {' '}No hemos podido verificar el conteo en este momento; aparecen registradas aproximadamente <strong>{fallbackCount}</strong>{' '}
+              {fallbackCount === 1 ? 'aportación' : 'aportaciones'}. Si continúas, se reasignarán al fondo general antes de borrar.
+            </>
+          ) : realCount > 0 ? (
+            <>
+              {' '}Hay <strong>{realCount}</strong>{' '}
+              {realCount === 1 ? 'persona vinculada' : 'personas vinculadas'} a esta partida. Sus aportaciones se reasignarán al fondo general (sin partida específica) antes de borrar.
             </>
           ) : (
             <> No hay aportaciones vinculadas, así que no se reasignará nada.</>
