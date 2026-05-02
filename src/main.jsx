@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import App from './App.jsx';
+import ErrorBoundary from './components/ErrorBoundary.jsx';
 
 import '@fontsource/fraunces/400.css';
 import '@fontsource/fraunces/500.css';
@@ -49,7 +50,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(
       basename={import.meta.env.BASE_URL}
       future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
     >
-      <App />
+      <ErrorBoundary>
+        <App />
+      </ErrorBoundary>
     </BrowserRouter>
   </React.StrictMode>
 );
