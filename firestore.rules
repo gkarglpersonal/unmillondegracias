@@ -87,6 +87,10 @@ service cloud.firestore {
         && request.resource.data.email.matches('^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$')
         && request.resource.data.paymentStatus == 'pending'
         && (request.resource.data.amount == null || (request.resource.data.amount is number && request.resource.data.amount >= 0 && request.resource.data.amount <= 100000))
+        && (!('message' in request.resource.data)
+            || request.resource.data.message == null
+            || (request.resource.data.message is string
+                && request.resource.data.message.size() <= 2000))
         && (!('tripItemId' in request.resource.data)
             || request.resource.data.tripItemId == null
             || (request.resource.data.tripItemId is string
