@@ -21,13 +21,24 @@ const CONTRIBUTIONS_COL = 'contributions';
 // Firestore limita un writeBatch a 500 operaciones. Dejamos margen.
 const BATCH_LIMIT = 450;
 
-function onListenerError(err) {
-  if (err?.code !== 'permission-denied') {
-    console.warn('tripItems listener:', err?.code || err?.message);
-  }
+/**
+ * Compone log interno + callback opcional del consumer. Si llega
+ * `permission-denied` (típicamente porque las reglas todavía no están
+ * desplegadas), lo silenciamos en ambos canales para no molestar a la UI
+ * pública con un falso "error de conexión".
+ */
+function makeListenerError(externalCallback) {
+  return (err) => {
+    if (err?.code !== 'permission-denied') {
+      console.warn('tripItems listener:', err?.code || err?.message);
+      if (typeof externalCallback === 'function') {
+        externalCallback(err);
+      }
+    }
+  };
 }
 
-export function subscribeTripItems(callback, { onlyActive = true } = {}) {
+export function subscribeTripItems(callback, { onlyActive = true, onError } = {}) {
   // Solo orderBy: Firestore lo auto-indexa. Si añadimos `where active==true`
   // junto con orderBy('order'), Firestore exige un índice compuesto que
   // no merece la pena declarar para 25 documentos. Filtramos en cliente.
@@ -38,7 +49,7 @@ export function subscribeTripItems(callback, { onlyActive = true } = {}) {
       const items = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
       callback(onlyActive ? items.filter((i) => i.active !== false) : items);
     },
-    onListenerError
+    makeListenerError(onError)
   );
 }
 

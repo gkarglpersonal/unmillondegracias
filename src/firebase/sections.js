@@ -17,18 +17,23 @@ import { db } from './config.js';
 const COL = 'sections';
 const TRIP_ITEMS_COL = 'tripItems';
 
-function onListenerError(err) {
-  if (err?.code !== 'permission-denied') {
-    console.warn('sections listener:', err?.code || err?.message);
-  }
+function makeListenerError(externalCallback) {
+  return (err) => {
+    if (err?.code !== 'permission-denied') {
+      console.warn('sections listener:', err?.code || err?.message);
+      if (typeof externalCallback === 'function') {
+        externalCallback(err);
+      }
+    }
+  };
 }
 
-export function subscribeSections(callback) {
+export function subscribeSections(callback, errorCallback) {
   const q = query(collection(db, COL), orderBy('order', 'asc'));
   return onSnapshot(
     q,
     (snap) => callback(snap.docs.map((d) => ({ id: d.id, ...d.data() }))),
-    onListenerError
+    makeListenerError(errorCallback)
   );
 }
 

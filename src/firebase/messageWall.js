@@ -30,15 +30,27 @@ const BATCH_LIMIT = 450;
  * Errores como `permission-denied` ocurren mientras Firestore aún no está
  * provisionado o las reglas no están desplegadas. Los silenciamos: la UI
  * fallback funciona con datos vacíos.
+ *
+ * Si el caller pasa un `externalCallback`, lo invocamos también con el
+ * error (filtrando los `permission-denied` igual que el log) para que la
+ * UI pueda mostrar feedback de "conexión perdida" si quiere. El log
+ * interno se mantiene siempre.
  */
-function onListenerError(err) {
-  if (err?.code !== 'permission-denied') {
-    console.warn('messageWall listener:', err?.code || err?.message);
-  }
+function makeListenerError(externalCallback) {
+  return (err) => {
+    if (err?.code !== 'permission-denied') {
+      console.warn('messageWall listener:', err?.code || err?.message);
+      if (typeof externalCallback === 'function') {
+        externalCallback(err);
+      }
+    }
+  };
 }
 
+const onListenerError = makeListenerError();
+
 /** Mensajes visibles en el muro (no ocultos por admin, con texto). */
-export function subscribeVisibleMessages(callback) {
+export function subscribeVisibleMessages(callback, errorCallback) {
   const q = query(
     collection(db, COL),
     where('messageHidden', '==', false),
@@ -53,12 +65,12 @@ export function subscribeVisibleMessages(callback) {
           .filter((m) => m.message && m.message.trim().length > 0)
       );
     },
-    onListenerError
+    makeListenerError(errorCallback)
   );
 }
 
 /** Fotos aprobadas para la galería. */
-export function subscribeApprovedPhotos(callback) {
+export function subscribeApprovedPhotos(callback, errorCallback) {
   const q = query(
     collection(db, COL),
     where('photoApproved', '==', true),
@@ -73,19 +85,19 @@ export function subscribeApprovedPhotos(callback) {
           .filter((m) => m.photoUrl)
       );
     },
-    onListenerError
+    makeListenerError(errorCallback)
   );
 }
 
 /** Feed de incorporaciones recientes (últimas N). */
-export function subscribeRecentContributions(callback, n = 5) {
+export function subscribeRecentContributions(callback, n = 5, errorCallback) {
   const q = query(collection(db, COL), orderBy('createdAt', 'desc'), limit(n));
   return onSnapshot(
     q,
     (snap) => {
       callback(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
     },
-    onListenerError
+    makeListenerError(errorCallback)
   );
 }
 
