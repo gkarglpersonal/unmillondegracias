@@ -201,6 +201,9 @@ export default function ParticipationForm({
       // usuario si falla (su contribución es válida igual y el admin se
       // entera por consola/Firestore). Solo el fallo de PANGEA, cuando
       // hay importe, sí merece aviso explícito al donante.
+      // Le pasamos el estado de PANGEA para que el correo al admin diga
+      // claramente si hay que atender el cobro manualmente.
+      const pangeaStatus = amount ? (pangeaResult.ok ? 'ok' : 'failed') : 'no-amount';
       await notifyAdmin({
         name: trimmedName,
         kind,
@@ -208,6 +211,7 @@ export default function ParticipationForm({
         hasMessage: !!message,
         amount,
         adminUrl,
+        pangeaStatus,
       });
 
       const warning =
