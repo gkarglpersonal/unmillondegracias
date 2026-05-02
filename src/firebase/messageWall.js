@@ -11,6 +11,8 @@ import {
   startAfter,
   updateDoc,
   deleteDoc,
+  setDoc,
+  serverTimestamp,
   writeBatch,
 } from 'firebase/firestore';
 import { db } from './config.js';
@@ -89,16 +91,94 @@ export function subscribeApprovedPhotos(callback, errorCallback) {
   );
 }
 
-/** Feed de incorporaciones recientes (últimas N). */
+/**
+ * Feed de incorporaciones recientes (últimas N).
+ *
+ * Filtra los docs marcados con `excludeFromFeed: true`, que son las subidas
+ * manuales desde /admin (ej.: cuando el admin sube una foto en nombre de
+ * alguien que la envió por WhatsApp). El feed solo refleja participaciones
+ * reales a través del formulario público.
+ *
+ * Para tener un margen y devolver siempre N elementos visibles aunque
+ * algunos de los más recientes estén excluidos, traemos `n * 3` y filtramos
+ * en cliente. Sobrar algunos docs es trivial para el volumen previsto.
+ */
 export function subscribeRecentContributions(callback, n = 5, errorCallback) {
-  const q = query(collection(db, COL), orderBy('createdAt', 'desc'), limit(n));
+  const q = query(collection(db, COL), orderBy('createdAt', 'desc'), limit(n * 3));
   return onSnapshot(
     q,
     (snap) => {
-      callback(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+      callback(
+        snap.docs
+          .map((d) => ({ id: d.id, ...d.data() }))
+          .filter((m) => m.excludeFromFeed !== true)
+          .slice(0, n)
+      );
     },
     makeListenerError(errorCallback)
   );
+}
+
+/**
+ * Subida manual de foto desde el panel admin: crea solo el doc del muro
+ * (sin contribución económica) y marca `excludeFromFeed: true` para que
+ * NO aparezca en el feed de "X se ha sumado". Útil cuando alguien envía
+ * la foto por otro canal (WhatsApp, correo) y el admin la incorpora.
+ *
+ * El doc se crea con `photoApproved: false` y la foto en `photos/pending/`,
+ * idéntico al flujo público: el admin la aprueba después desde la pestaña
+ * "Fotos" igual que cualquier otra subida. Eso preserva el flujo de
+ * moderación uniforme y la galería sigue siendo el sitio donde la foto
+ * acaba apareciendo.
+ *
+ * NO crea entrada en `contributions`: es solo subida de foto/mensaje, no
+ * aportación económica. Si el admin necesita registrar también un importe,
+ * usa `createManualContribution`.
+ *
+ * @param {object} input
+ * @param {string} input.name
+ * @param {string|null} [input.message]
+ * @param {string} input.photoStoragePath - debe estar bajo photos/pending/
+ * @param {string|null} [input.tripItemId]
+ */
+export async function createManualPhotoEntry({
+  name,
+  message = null,
+  photoStoragePath,
+  tripItemId = null,
+}) {
+  if (!name || !name.trim()) {
+    throw new Error('createManualPhotoEntry: falta name.');
+  }
+  if (!photoStoragePath) {
+    throw new Error('createManualPhotoEntry: falta photoStoragePath.');
+  }
+  if (!photoStoragePath.startsWith('photos/pending/')) {
+    throw new Error(
+      'createManualPhotoEntry: photoStoragePath debe estar bajo photos/pending/.'
+    );
+  }
+
+  const id = doc(collection(db, COL)).id;
+  const trimmedMessage =
+    typeof message === 'string' ? message.trim() || null : null;
+
+  const ref = doc(db, COL, id);
+  await setDoc(ref, {
+    name: name.trim(),
+    message: trimmedMessage,
+    photoUrl: null,
+    photoStoragePath,
+    tripItemId,
+    photoApproved: false,
+    messageHidden: false,
+    paid: false,
+    createdAt: serverTimestamp(),
+    contributionId: null,
+    excludeFromFeed: true,
+  });
+
+  return { id };
 }
 
 /** Contribuidores (pagados) por partida — para mostrar nombres bajo el termómetro. */

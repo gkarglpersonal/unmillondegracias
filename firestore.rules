@@ -46,7 +46,12 @@ service cloud.firestore {
     match /messageWall/{messageId} {
       allow read: if true;
 
-      // Privacidad: el cliente NUNCA puede crear un doc con photoUrl
+      // Admin: puede crear sin pasar por las validaciones públicas (subida
+      // manual de fotos desde /admin con campos especiales como
+      // `excludeFromFeed: true` o `photoApproved: true` directos).
+      allow create: if isAdmin();
+
+      // Público: privacidad estricta. NUNCA puede crear con photoUrl
       // poblado. Solo admin lo asigna al aprobar la foto (entonces el
       // blob se ha movido a photos/approved/, que es público).
       allow create: if

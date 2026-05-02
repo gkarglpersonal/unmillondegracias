@@ -5,6 +5,7 @@ import MessagesModeration from './MessagesModeration.jsx';
 import PhotosModeration from './PhotosModeration.jsx';
 import TripItemsManager from './TripItemsManager.jsx';
 import ManualContributionForm from './ManualContributionForm.jsx';
+import ManualPhotoUploadForm from './ManualPhotoUploadForm.jsx';
 import ExportTools from './ExportTools.jsx';
 import EmailJsAlert from './EmailJsAlert.jsx';
 import styles from './AdminLayout.module.css';
@@ -15,6 +16,7 @@ const TABS = [
   { id: 'photos', label: 'Fotos', component: PhotosModeration },
   { id: 'trip-items', label: 'Partidas', component: TripItemsManager },
   { id: 'manual', label: 'Aportación manual', component: ManualContributionForm },
+  { id: 'manual-photo', label: 'Subir foto', component: ManualPhotoUploadForm },
   { id: 'export', label: 'Exportar', component: ExportTools },
 ];
 
