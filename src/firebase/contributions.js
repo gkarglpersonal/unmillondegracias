@@ -11,6 +11,8 @@ import {
   deleteDoc,
   increment,
   where,
+  limit,
+  startAfter,
 } from 'firebase/firestore';
 import { db } from './config.js';
 import { deletePhotoByPath } from './storage.js';
@@ -136,19 +138,80 @@ export async function deletePublicMessageById(publicMessageId) {
 
 /* -------- Admin -------- */
 
-export function subscribeAdminContributions(callback) {
+function onAdminListenerError(err) {
+  if (err?.code !== 'permission-denied') {
+    console.warn('contributions listener:', err?.code || err?.message);
+  }
+}
+
+/**
+ * Admin: contribuciones para listas/exportación.
+ *
+ * Firma compatible:
+ *  - `subscribeAdminContributions(callback)` (legacy): emite array plano con
+ *    todos los docs. La usan ExportTools (PDF/ZIP de entrega final, necesita
+ *    todos) y EmailJsAlert (cuenta global de pendientes). NO se rompe.
+ *  - `subscribeAdminContributions(callback, { pageSize })` (paginado,
+ *    Importante #13): emite `{ items, lastDoc, hasMore }` con `limit(pageSize)`.
+ *    Usado por ContributionsList.jsx para no traer 100+ docs de golpe.
+ *
+ * El comportamiento depende de si el segundo argumento se pasa o no — así
+ * los callers fuera del alcance siguen funcionando sin cambios.
+ */
+export function subscribeAdminContributions(callback, options) {
+  // Modo paginado: solo si el caller pasa explícitamente options.
+  if (options && typeof options === 'object') {
+    const { pageSize = 50 } = options;
+    const q = query(
+      collection(db, C_PRIVATE),
+      orderBy('createdAt', 'desc'),
+      limit(pageSize)
+    );
+    return onSnapshot(
+      q,
+      (snap) => {
+        const items = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        const lastDoc = snap.docs.length > 0 ? snap.docs[snap.docs.length - 1] : null;
+        const hasMore = snap.docs.length === pageSize;
+        callback({ items, lastDoc, hasMore });
+      },
+      onAdminListenerError
+    );
+  }
+
+  // Modo legacy: emite array plano con todos los docs.
   const q = query(collection(db, C_PRIVATE), orderBy('createdAt', 'desc'));
   return onSnapshot(
     q,
     (snap) => {
       callback(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
     },
-    (err) => {
-      if (err?.code !== 'permission-denied') {
-        console.warn('contributions listener:', err?.code || err?.message);
-      }
-    }
+    onAdminListenerError
   );
+}
+
+/**
+ * Carga la siguiente página de contribuciones admin a partir del cursor.
+ *
+ * NO es reactivo: es un `getDocs` puntual. Devuelve `{ items, lastDoc, hasMore }`,
+ * la misma forma que emite `subscribeAdminContributions` en modo paginado.
+ * Si `lastDoc` es null/undefined, devuelve un resultado vacío sin tirar.
+ */
+export async function fetchMoreAdminContributions(lastDoc, { pageSize = 50 } = {}) {
+  if (!lastDoc) {
+    return { items: [], lastDoc: null, hasMore: false };
+  }
+  const q = query(
+    collection(db, C_PRIVATE),
+    orderBy('createdAt', 'desc'),
+    startAfter(lastDoc),
+    limit(pageSize)
+  );
+  const snap = await getDocs(q);
+  const items = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  const newLastDoc = snap.docs.length > 0 ? snap.docs[snap.docs.length - 1] : null;
+  const hasMore = snap.docs.length === pageSize;
+  return { items, lastDoc: newLastDoc, hasMore };
 }
 
 export async function fetchPaidContributions() {

@@ -134,6 +134,22 @@
 .rejectBtn:hover { background: rgba(178, 90, 71, 0.08); }
 .rejectBtn:disabled { opacity: 0.5; cursor: not-allowed; }
 
+/* Acción secundaria destructiva: "Borrar entrada" (foto + mensaje).
+   Más agresivo visualmente que .rejectBtn — bordeado en rojo — para
+   que el admin la distinga del rechazo blando que conserva el mensaje. */
+.deleteAllBtn {
+  font-size: var(--fs-body-sm);
+  font-weight: var(--fw-medium);
+  color: var(--color-error);
+  background: transparent;
+  border: 1px solid var(--color-error);
+  cursor: pointer;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-full);
+}
+.deleteAllBtn:hover { background: rgba(178, 90, 71, 0.12); }
+.deleteAllBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+
 .empty {
   font-style: italic;
   color: var(--text-muted);

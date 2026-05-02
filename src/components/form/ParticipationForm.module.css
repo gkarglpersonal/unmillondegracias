@@ -211,3 +211,16 @@
   color: var(--text-body);
   line-height: 1.45;
 }
+
+/* Link a /privacy dentro del checkbox RGPD. Subrayado discreto y color honey
+ * para indicar que es navegable sin romper el ritmo visual del checkbox. */
+.privacyLink {
+  color: var(--honey);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.privacyLink:hover,
+.privacyLink:focus {
+  text-decoration: none;
+}

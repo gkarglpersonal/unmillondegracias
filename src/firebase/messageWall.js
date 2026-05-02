@@ -8,6 +8,7 @@ import {
   query,
   where,
   limit,
+  startAfter,
   updateDoc,
   deleteDoc,
   writeBatch,
@@ -110,7 +111,14 @@ export async function fetchAllMessages() {
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
 
-/** Admin: todos los mensajes (incluidos ocultos), para moderación. */
+/**
+ * Admin: todos los mensajes (incluidos ocultos), para moderación.
+ *
+ * Legacy: emite un array plano. Sigue usándose desde ExportTools.jsx, que
+ * necesita TODOS los mensajes para generar el PDF de entrega final, y por
+ * tanto NO puede paginar. Para moderación con paginación usa
+ * `subscribeAdminMessages` (Importante #13).
+ */
 export function subscribeAllMessages(callback) {
   const q = query(collection(db, COL), orderBy('createdAt', 'desc'));
   return onSnapshot(
@@ -118,6 +126,64 @@ export function subscribeAllMessages(callback) {
     (snap) => callback(snap.docs.map((d) => ({ id: d.id, ...d.data() }))),
     onListenerError
   );
+}
+
+/**
+ * Admin: mensajes paginados con cursor, para moderación.
+ *
+ * El `onSnapshot` cubre solo la primera página (`limit(pageSize)`). El callback
+ * recibe `{ items, lastDoc, hasMore }`:
+ *   - `items`: array de docs ya hidratados.
+ *   - `lastDoc`: último QueryDocumentSnapshot, para pasar a `fetchMoreAdminMessages`.
+ *   - `hasMore`: true si la página llegó completa (puede haber más).
+ *
+ * Compromiso: la paginación NO es totalmente reactiva. Cambios en docs
+ * "viejos" (más allá de la primera página, que el listener no observa) no
+ * se reflejan hasta refrescar la página de admin. Aceptable para
+ * moderación.
+ *
+ * Devuelve `unsubscribe` para limpieza.
+ */
+export function subscribeAdminMessages(callback, { pageSize = 50 } = {}) {
+  const q = query(
+    collection(db, COL),
+    orderBy('createdAt', 'desc'),
+    limit(pageSize)
+  );
+  return onSnapshot(
+    q,
+    (snap) => {
+      const items = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      const lastDoc = snap.docs.length > 0 ? snap.docs[snap.docs.length - 1] : null;
+      const hasMore = snap.docs.length === pageSize;
+      callback({ items, lastDoc, hasMore });
+    },
+    onListenerError
+  );
+}
+
+/**
+ * Carga la siguiente página de mensajes admin a partir del cursor.
+ *
+ * NO es reactivo: es un `getDocs` puntual. Devuelve la misma forma que
+ * el callback paginado: `{ items, lastDoc, hasMore }`. Si `lastDoc` es
+ * null/undefined, devuelve un resultado vacío sin tirar.
+ */
+export async function fetchMoreAdminMessages(lastDoc, { pageSize = 50 } = {}) {
+  if (!lastDoc) {
+    return { items: [], lastDoc: null, hasMore: false };
+  }
+  const q = query(
+    collection(db, COL),
+    orderBy('createdAt', 'desc'),
+    startAfter(lastDoc),
+    limit(pageSize)
+  );
+  const snap = await getDocs(q);
+  const items = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  const newLastDoc = snap.docs.length > 0 ? snap.docs[snap.docs.length - 1] : null;
+  const hasMore = snap.docs.length === pageSize;
+  return { items, lastDoc: newLastDoc, hasMore };
 }
 
 /**
@@ -298,6 +364,41 @@ export async function unapprovePhoto(messageId) {
   });
 
   return { newStoragePath };
+}
+
+/**
+ * Rechaza solo la foto y conserva el mensaje. Borra el blob de Storage
+ * (si existe) y limpia los campos de foto en el doc, dejando el resto
+ * de la entrada intacta — texto, nombre y aporte económico siguen
+ * visibles en el muro.
+ *
+ * Pasos:
+ *  1. Lee el doc.
+ *  2. Si tiene `photoStoragePath`, borra el blob con `deletePhotoByPath`.
+ *  3. Actualiza el doc con `photoStoragePath: null`, `photoUrl: null`,
+ *     `photoApproved: false`.
+ *
+ * Idempotente: si la entrada ya está sin foto (sin path), solo aplica
+ * el update de flags. No tira si el doc no existe (no-op).
+ *
+ * Diferencia con `rejectPhoto`: aquella borra el doc completo; esta
+ * preserva el mensaje. Úsala cuando la foto sea inapropiada pero el
+ * texto del aporte sí merezca seguir en el muro.
+ */
+export async function rejectPhotoKeepMessage(messageId) {
+  const ref = doc(db, COL, messageId);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) return;
+  const data = snap.data();
+
+  if (data.photoStoragePath) {
+    await deletePhotoByPath(data.photoStoragePath);
+  }
+  await updateDoc(ref, {
+    photoStoragePath: null,
+    photoUrl: null,
+    photoApproved: false,
+  });
 }
 
 /**

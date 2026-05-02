@@ -39,6 +39,11 @@ export const formSchema = z.object({
     .nullable()
     .optional(),
   amountPrivate: z.boolean().optional().default(false),
+  privacyAccepted: z.literal(true, {
+    errorMap: () => ({
+      message: 'Debes aceptar la política de privacidad para participar.',
+    }),
+  }),
 });
 
 export const defaultFormValues = {
@@ -48,4 +53,5 @@ export const defaultFormValues = {
   tripItemId: '',
   amount: '',
   amountPrivate: false,
+  privacyAccepted: false,
 };

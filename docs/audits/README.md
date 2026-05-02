@@ -10,6 +10,7 @@ descendente.
 
 | Fecha | Documento | Resumen | Estado |
 |---|---|---|---|
+| 2026-05-02 | [Fase 3 — Deferidos de fase 2](./2026-05-02-fase-3-deferidos.md) | 8 puntos diferidos cerrados en 6 commits, 2 olas con QA gates paralelos. Build/lint estables; deploy de rules diferido al post-merge. | ✅ Cerrado |
 | 2026-05-01 | [Fase 2 — Mejoras importantes y menores](./2026-05-01-fase-2-mejoras.md) | 14/22 puntos cerrados en 6 commits; 8 diferidos a fase 3. Sesión interactiva sin QA externos. | ✅ Cerrado, con diferimiento documentado |
 | 2026-04-30 | [Fixes críticos post-auditoría](./2026-04-30-fixes-criticos.md) | 6 críticos resueltos en 2 olas con QA gates. 5 commits, push + deploy a producción. | ✅ Cerrado |
 
