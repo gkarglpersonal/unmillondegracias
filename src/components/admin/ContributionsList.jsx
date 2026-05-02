@@ -90,31 +90,16 @@ export default function ContributionsList() {
   };
 
   /**
-   * Borrado con confirmación reforzada para pagadas: enuncia consecuencias
-   * y exige una segunda confirmación con el importe en el texto.
-   *
-   * Nota: solo se borra la aportación económica. El mensaje y la foto que
-   * la persona haya enviado se conservan en el muro y la galería. Si la
-   * entrada no tenía ni mensaje ni foto, la entrada del muro se elimina
-   * (sería un fantasma sin contenido visible).
+   * Borrado de la aportación económica. Mensaje y foto del donante se
+   * conservan en el muro. Para las pagadas se exige una segunda
+   * confirmación con el importe en el texto.
    */
   const handleDelete = async (c) => {
     const isPaid = c.paymentStatus === 'paid';
     const amountText = c.amount && c.amount > 0 ? formatCurrency(c.amount) : 'sin importe';
-    const hasMessage =
-      typeof c.message === 'string' && c.message.trim().length > 0;
-    const hasPhoto = !!c.photoStoragePath;
-    const preservePart =
-      hasMessage || hasPhoto
-        ? 'El mensaje y la foto de esta persona se conservan en el muro.'
-        : 'Esta aportación no tiene mensaje ni foto, así que la entrada del muro también se elimina.';
 
-    let confirmText;
-    if (isPaid) {
-      confirmText = `Vas a eliminar esta aportación económica de ${amountText}. Se descontará del termómetro y del contador general. ${preservePart} Esta acción no se puede deshacer.\n\n¿Continuar?`;
-    } else {
-      confirmText = `Vas a eliminar esta aportación económica. ${preservePart} Esta acción no se puede deshacer.\n\n¿Continuar?`;
-    }
+    const confirmText =
+      'Vas a eliminar esta aportación económica. El mensaje y la foto de esta persona se conservan en el muro. Esta acción no se puede deshacer.\n\n¿Continuar?';
 
     if (!confirm(confirmText)) return;
 
