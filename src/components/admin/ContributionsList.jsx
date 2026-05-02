@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Lock } from 'lucide-react';
 import {
   subscribeAdminContributions,
+  fetchMoreAdminContributions,
   markContributionPaid,
   unmarkContributionPaid,
   deleteContribution,
@@ -18,9 +19,14 @@ const FILTERS = [
   { id: 'paid', label: 'Pagadas' },
 ];
 
+const PAGE_SIZE = 50;
+
 export default function ContributionsList() {
   const [items, setItems] = useState([]);
+  const [lastDoc, setLastDoc] = useState(null);
+  const [hasMore, setHasMore] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [filter, setFilter] = useState('pending');
   const [busyId, setBusyId] = useState(null);
   const [editingId, setEditingId] = useState(null);
@@ -29,10 +35,18 @@ export default function ContributionsList() {
   const { items: tripItems } = useTripItems({ onlyActive: false });
 
   useEffect(() => {
-    const unsub = subscribeAdminContributions((data) => {
-      setItems(data);
-      setLoading(false);
-    });
+    // Listener paginado: solo la primera página es reactiva. Páginas
+    // posteriores se cargan con `fetchMoreAdminContributions` y no
+    // actualizan ante cambios remotos hasta refrescar.
+    const unsub = subscribeAdminContributions(
+      ({ items: firstPage, lastDoc: cursor, hasMore: more }) => {
+        setItems(firstPage);
+        setLastDoc(cursor);
+        setHasMore(more);
+        setLoading(false);
+      },
+      { pageSize: PAGE_SIZE }
+    );
     const t = setTimeout(() => setLoading(false), 2000);
     return () => {
       clearTimeout(t);
@@ -46,6 +60,23 @@ export default function ContributionsList() {
     if (filter === 'all') return true;
     return c.paymentStatus === filter;
   });
+
+  const handleLoadMore = async () => {
+    if (!hasMore || !lastDoc || loadingMore) return;
+    setLoadingMore(true);
+    try {
+      const next = await fetchMoreAdminContributions(lastDoc, { pageSize: PAGE_SIZE });
+      // Append: cada página viene ordenada desc y arranca tras el cursor,
+      // así el orden global se preserva sin re-sort.
+      setItems((prev) => [...prev, ...next.items]);
+      setLastDoc(next.lastDoc);
+      setHasMore(next.hasMore);
+    } catch (err) {
+      console.warn('fetchMoreAdminContributions:', err?.code || err?.message);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
 
   const handleMarkPaid = async (id) => {
     setBusyId(id);
@@ -172,6 +203,7 @@ export default function ContributionsList() {
       ) : filtered.length === 0 ? (
         <p className={styles.empty}>No hay aportaciones {filter !== 'all' ? `en estado "${filter}"` : ''}.</p>
       ) : (
+        <>
         <ul className={styles.list}>
           {filtered.map((c) => (
             <li key={c.id} className={styles.row}>
@@ -294,6 +326,23 @@ export default function ContributionsList() {
             </li>
           ))}
         </ul>
+        {hasMore ? (
+          <div style={{ display: 'flex', justifyContent: 'center', marginTop: '1rem' }}>
+            <button
+              type="button"
+              className="btn-secondary"
+              disabled={loadingMore}
+              onClick={handleLoadMore}
+            >
+              {loadingMore ? 'Cargando más…' : 'Cargar más aportaciones'}
+            </button>
+          </div>
+        ) : items.length > PAGE_SIZE ? (
+          <p className={styles.empty} style={{ marginTop: '1rem' }}>
+            No hay más aportaciones.
+          </p>
+        ) : null}
+        </>
       )}
     </section>
   );
