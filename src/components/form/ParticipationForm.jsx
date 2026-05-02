@@ -380,7 +380,7 @@ export default function ParticipationForm({
           <span className={styles.checkboxText}>
             He leído y acepto la{' '}
             <a
-              href="/privacy"
+              href="https://unmillondegracias.com/privacidad"
               target="_blank"
               rel="noopener noreferrer"
               className={styles.privacyLink}
