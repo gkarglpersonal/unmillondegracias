@@ -11,21 +11,32 @@ import styles from './FormModal.module.css';
  */
 export default function FormModal({ open, onClose, lockedTripItemId = null }) {
   const [success, setSuccess] = useState(null);
+  // Bloquea ESC y × mientras el submit está en vuelo: cerrar a mitad
+  // perdería `attemptStateRef` del form y un retry posterior generaría
+  // IDs nuevos → contribución duplicada. Simétrico al guard por `success`.
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (!open) return;
     document.body.style.overflow = 'hidden';
     const onKey = (e) => {
-      if (e.key === 'Escape' && !success) onClose();
+      if (e.key === 'Escape' && !success && !submitting) onClose();
     };
     window.addEventListener('keydown', onKey);
     return () => {
       document.body.style.overflow = '';
       window.removeEventListener('keydown', onKey);
     };
-  }, [open, onClose, success]);
+  }, [open, onClose, success, submitting]);
 
   if (!open) return null;
+
+  // Guarda explícita en el handler del botón × por si el `disabled` se
+  // ignora (programáticamente, foco anidado, etc.).
+  const handleClose = () => {
+    if (submitting) return;
+    onClose();
+  };
 
   return (
     <div
@@ -39,8 +50,10 @@ export default function FormModal({ open, onClose, lockedTripItemId = null }) {
           <button
             type="button"
             className={styles.closeBtn}
-            onClick={onClose}
+            onClick={handleClose}
             aria-label="Cerrar"
+            disabled={submitting}
+            aria-disabled={submitting}
           >
             ×
           </button>
@@ -52,6 +65,7 @@ export default function FormModal({ open, onClose, lockedTripItemId = null }) {
             variant="modal"
             lockedTripItemId={lockedTripItemId}
             onSuccess={(data) => setSuccess(data)}
+            onSubmittingChange={setSubmitting}
           />
         </div>
 

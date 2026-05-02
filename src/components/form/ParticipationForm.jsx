@@ -44,6 +44,7 @@ export default function ParticipationForm({
   variant = 'sidebar',
   lockedTripItemId = null,
   onSuccess,
+  onSubmittingChange,
 }) {
   const { items: tripItems } = useTripItems();
   const [photo, setPhoto] = useState(null);
@@ -97,6 +98,9 @@ export default function ParticipationForm({
     // inmediato. El botón con disabled es la segunda capa.
     if (submittingRef.current) return;
     submittingRef.current = true;
+    // Notificamos al contenedor (FormModal) para que bloquee ESC y × mientras
+    // el submit está en vuelo. Simétrico al patrón ya existente para `success`.
+    onSubmittingChange?.(true);
 
     setSubmitting(true);
     setSubmitError(null);
@@ -130,9 +134,16 @@ export default function ParticipationForm({
         // Pasamos contributionId para nombrar el blob de forma estable:
         // si el usuario reintenta, el path resultante sería el mismo, lo
         // que ayuda al debugging y a la traza admin → blob.
-        const { storagePath } = await uploadPhoto(photo.file, { contributionId });
-        attemptStateRef.current.photoStoragePath = storagePath;
-        photoUploadedThisAttempt = true;
+        try {
+          const { storagePath } = await uploadPhoto(photo.file, { contributionId });
+          attemptStateRef.current.photoStoragePath = storagePath;
+          photoUploadedThisAttempt = true;
+        } catch (photoErr) {
+          // Anotamos la fase para que el catch externo pueda mostrar copy
+          // específico al usuario sin tener que distinguir por mensaje.
+          photoErr.phase = 'photo';
+          throw photoErr;
+        }
       }
       const photoStoragePath = attemptStateRef.current.photoStoragePath;
 
@@ -163,6 +174,7 @@ export default function ParticipationForm({
           await deletePhotoByPath(photoStoragePath);
           attemptStateRef.current.photoStoragePath = null;
         }
+        saveErr.phase = 'save';
         throw saveErr;
       }
 
@@ -223,12 +235,20 @@ export default function ParticipationForm({
       // reintento reusa los IDs ya generados (idempotente vía setDoc) y
       // el path de foto si ya estaba subida — no se duplican recursos.
       console.error('Submit failed:', err);
-      setSubmitError(
-        'No hemos podido guardar tu participación. Vuelve a intentarlo en un momento.'
-      );
+      // Mensaje específico según la fase anotada en el throw. Si llega un
+      // error inesperado sin `phase`, mostramos el copy genérico.
+      const phase = err?.phase;
+      const msg =
+        phase === 'photo'
+          ? copy.form.errors.photo
+          : phase === 'save'
+            ? copy.form.errors.save
+            : copy.form.errors.unknown;
+      setSubmitError(msg);
     } finally {
       submittingRef.current = false;
       setSubmitting(false);
+      onSubmittingChange?.(false);
     }
   };
 
@@ -316,6 +336,32 @@ export default function ParticipationForm({
             {copy.form.fields.amountPrivate}
           </span>
         </label>
+
+        {/* Consentimiento RGPD — obligatorio. Texto y link sostenidos por copy.js. */}
+        <label className={styles.checkboxField}>
+          <input
+            type="checkbox"
+            className={styles.checkbox}
+            {...register('privacyAccepted')}
+            aria-invalid={!!errors.privacyAccepted}
+          />
+          <span className={styles.checkboxText}>
+            He leído y acepto la{' '}
+            <a
+              href="/privacy"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={styles.privacyLink}
+            >
+              política de privacidad
+            </a>
+            . Entiendo que mi nombre, mensaje y foto se mostrarán en la web pública (la foto solo tras aprobación del admin) y que, si indico un importe, mis datos de contacto se cederán a{' '}
+            <strong>PANGEA The Travel Store</strong> para gestionar el cobro.
+          </span>
+        </label>
+        {errors.privacyAccepted && (
+          <span className={styles.err}>{errors.privacyAccepted.message}</span>
+        )}
       </div>
 
       {submitError && <p className={styles.submitError}>{submitError}</p>}

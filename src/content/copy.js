@@ -86,6 +86,19 @@ export const copy = {
       amountPrivate:
         'Prefiero no mostrar mi aportación — MªÁngeles verá mi nombre y mensaje, pero no el importe.',
     },
+    privacy: {
+      linkText: 'política de privacidad',
+      // Texto del checkbox RGPD. Se renderiza con el link a /privacy y
+      // PANGEA en <strong>. El JSX inserta los énfasis directamente.
+      checkboxLabel:
+        'He leído y acepto la {link}. Entiendo que mi nombre, mensaje y foto se mostrarán en la web pública (la foto solo tras aprobación del admin) y que, si indico un importe, mis datos de contacto se cederán a {pangea} para gestionar el cobro.',
+    },
+    errors: {
+      photo:
+        'No hemos podido subir tu foto. Comprueba el formato (JPG, PNG, HEIC) y vuelve a intentarlo.',
+      save: 'Hemos llegado a guardar tu participación pero algo se ha cortado. Pulsa Reintentar y la conservaremos sin duplicar.',
+      unknown: 'No hemos podido completar el envío. Vuelve a intentarlo en un momento.',
+    },
     submit: 'Enviar',
     successTitle: '¡Gracias!',
     successBody:
