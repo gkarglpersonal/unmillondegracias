@@ -165,15 +165,26 @@ export default function ParticipationForm({
           amountPrivate,
         });
       } catch (saveErr) {
-        // Cleanup en orden inverso: messageWall (puede o no existir),
-        // contribution (puede o no existir), foto (si se subió en este
-        // intento). deletePublicMessageById/deleteContributionById son
-        // no-throw; si falla el cleanup, se loguea y seguimos.
-        await deletePublicMessageById(publicMessageId);
-        await deleteContributionById(contributionId);
-        if (photoUploadedThisAttempt && photoStoragePath) {
-          await deletePhotoByPath(photoStoragePath);
-          attemptStateRef.current.photoStoragePath = null;
+        // Caso especial: timeout esperando confirmación del servidor. Las
+        // escrituras siguen pendientes en cache local de Firestore y, si
+        // el usuario reconecta, se aplicarán. Llamar a deleteDoc aquí
+        // añadiría más operaciones a la cola que, si la pestaña se cierra
+        // antes de sincronizar todo, podrían dejar setDoc sin deleteDoc
+        // (docs huérfanos). Mejor: no tocar nada, conservar IDs en
+        // attemptStateRef y dejar que el usuario reintente cuando vuelva
+        // la red — setDoc es idempotente.
+        if (saveErr?.code !== 'server-ack-timeout') {
+          // Cleanup normal en orden inverso: messageWall (puede o no
+          // existir), contribution (puede o no existir), foto (si se
+          // subió en este intento). deletePublicMessageById /
+          // deleteContributionById son no-throw; si falla el cleanup, se
+          // loguea y seguimos.
+          await deletePublicMessageById(publicMessageId);
+          await deleteContributionById(contributionId);
+          if (photoUploadedThisAttempt && photoStoragePath) {
+            await deletePhotoByPath(photoStoragePath);
+            attemptStateRef.current.photoStoragePath = null;
+          }
         }
         saveErr.phase = 'save';
         throw saveErr;
@@ -251,15 +262,20 @@ export default function ParticipationForm({
       // reintento reusa los IDs ya generados (idempotente vía setDoc) y
       // el path de foto si ya estaba subida — no se duplican recursos.
       console.error('Submit failed:', err);
-      // Mensaje específico según la fase anotada en el throw. Si llega un
-      // error inesperado sin `phase`, mostramos el copy genérico.
+      // Mensaje específico según la fase / código del error. El código
+      // `server-ack-timeout` (la escritura no se confirmó en el servidor
+      // dentro del timeout) tiene prioridad sobre la fase porque marca un
+      // problema de red distinto del de validación o permisos.
       const phase = err?.phase;
+      const code = err?.code;
       const msg =
-        phase === 'photo'
-          ? copy.form.errors.photo
-          : phase === 'save'
-            ? copy.form.errors.save
-            : copy.form.errors.unknown;
+        code === 'server-ack-timeout'
+          ? copy.form.errors.serverTimeout
+          : phase === 'photo'
+            ? copy.form.errors.photo
+            : phase === 'save'
+              ? copy.form.errors.save
+              : copy.form.errors.unknown;
       setSubmitError(msg);
     } finally {
       submittingRef.current = false;

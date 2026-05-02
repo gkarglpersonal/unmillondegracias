@@ -13,8 +13,37 @@ import {
   where,
   limit,
   startAfter,
+  waitForPendingWrites,
 } from 'firebase/firestore';
 import { db } from './config.js';
+
+/**
+ * Espera a que todas las escrituras pendientes en cache local se confirmen
+ * en el servidor, con timeout. Imprescindible antes de declarar éxito al
+ * usuario: Firestore tiene persistencia offline activa y `setDoc` resuelve
+ * la promise en cuanto el dato está en cache local, NO cuando el servidor
+ * confirma. Si la red está caída, la contribución queda solo en local y
+ * puede perderse si el usuario cierra la pestaña antes de reconectar.
+ *
+ * Si el timeout se agota, lanza un Error con `code: 'server-ack-timeout'`
+ * para que el llamador lo distinga de un error de validación o
+ * permission-denied y muestre copy específico (comprobar conexión).
+ */
+const SERVER_ACK_TIMEOUT_MS = 15000;
+async function awaitServerAck() {
+  await Promise.race([
+    waitForPendingWrites(db),
+    new Promise((_, reject) =>
+      setTimeout(() => {
+        const err = new Error(
+          'Tiempo de espera agotado al confirmar la escritura en el servidor.'
+        );
+        err.code = 'server-ack-timeout';
+        reject(err);
+      }, SERVER_ACK_TIMEOUT_MS)
+    ),
+  ]);
+}
 
 const C_PRIVATE = 'contributions';
 const C_PUBLIC = 'messageWall';
@@ -104,6 +133,12 @@ export async function createContribution({
     createdAt: serverTimestamp(),
     contributionId,
   });
+
+  // 3. Confirmar ack del servidor antes de declarar éxito. Sin esto, una
+  //    red mala puede dejar las escrituras solo en cache local, perdiéndose
+  //    si el usuario cierra la pestaña antes de reconectar (aunque el
+  //    formulario habría mostrado "guardado" engañosamente).
+  await awaitServerAck();
 
   return { contributionId, publicMessageId };
 }
@@ -421,6 +456,11 @@ export async function createManualContribution({
       );
     }
   });
+
+  // Confirmar ack del servidor antes de declarar éxito al admin. Mismo
+  // motivo que en createContribution: la persistencia offline de Firestore
+  // resuelve la transacción en cache local antes de la confirmación real.
+  await awaitServerAck();
 
   return { contributionId, publicMessageId };
 }
