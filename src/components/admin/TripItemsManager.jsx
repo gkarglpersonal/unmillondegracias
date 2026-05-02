@@ -630,7 +630,7 @@ export default function TripItemsManager() {
       {pendingDelete && (
         <DeleteSectionModal
           section={pendingDelete}
-          itemCount={(itemsBySection[pendingDelete.name] || []).length}
+          sectionItems={itemsBySection[pendingDelete.name] || []}
           busy={busy}
           onCancel={() => setPendingDelete(null)}
           onDeleteAll={handleDeleteAll}

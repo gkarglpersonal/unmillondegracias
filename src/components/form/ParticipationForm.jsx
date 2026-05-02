@@ -70,6 +70,7 @@ export default function ParticipationForm({
     control,
     setValue,
     watch,
+    reset,
     formState: { errors },
   } = useForm({
     resolver: zodResolver(formSchema),
@@ -225,6 +226,17 @@ export default function ParticipationForm({
         hasPhoto: !!photoStoragePath,
         warning,
       });
+
+      // Tras éxito, vaciar el formulario para que el usuario no envíe la
+      // misma participación dos veces. En la variante 'modal', el modal
+      // desmonta tras cerrar el SuccessOverlay; el reset cubre el caso del
+      // sidebar desktop, donde el form queda montado y visible.
+      reset({
+        ...defaultFormValues,
+        tripItemId: lockedTripItemId || '',
+      });
+      setPhoto(null);
+      setSubmitError(null);
     } catch (err) {
       // Llegamos aquí si:
       //  - falló la subida de foto (paso 1-2)
