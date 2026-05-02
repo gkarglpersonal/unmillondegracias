@@ -486,6 +486,16 @@ export async function deleteContribution(contributionId) {
       typeof c.message === 'string' && c.message.trim().length > 0;
     const hasPhoto = !!c.photoStoragePath;
 
+    // Lectura previa del mirror público: puede no existir si fue borrado
+    // antes desde "Mensajes" del admin o por una operación previa. Sin
+    // este chequeo, `tx.update` lanzaría `not-found` y haría rollback de
+    // toda la transacción.
+    let mirrorExists = false;
+    if (c.publicMessageId) {
+      const mSnap = await tx.get(doc(db, C_PUBLIC, c.publicMessageId));
+      mirrorExists = mSnap.exists();
+    }
+
     if (wasPaid && c.tripItemId && amount) {
       // tx.get para satisfacer la regla de read-before-write de la
       // transacción (vamos a actualizar este doc).
@@ -493,8 +503,9 @@ export async function deleteContribution(contributionId) {
     }
 
     // Mirror público: conservar si hay contenido del usuario (mensaje o
-    // foto), borrar si no había nada que preservar.
-    if (c.publicMessageId) {
+    // foto), borrar si no había nada que preservar. Si ya no existe, se
+    // omite — no hay nada que limpiar.
+    if (c.publicMessageId && mirrorExists) {
       const mRef = doc(db, C_PUBLIC, c.publicMessageId);
       if (hasMessage || hasPhoto) {
         // Solo se limpian los campos vinculados a la aportación económica.
