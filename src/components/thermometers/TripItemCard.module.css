@@ -145,6 +145,7 @@
   align-self: center;
   margin-top: 8px;
   padding: 8px 20px;
+  min-height: 44px;
   font-size: var(--fs-body-sm);
   width: auto;
 }
