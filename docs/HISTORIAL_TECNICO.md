@@ -1,6 +1,6 @@
 # unmillondegracias.com — Historial técnico y lecciones aprendidas
 
-*Última actualización: 2 de mayo de 2026 (auditoría pre-lanzamiento)*
+*Última actualización: 6 de mayo de 2026 (post-lanzamiento — PR 1 de mejoras al admin desplegado)*
 
 ---
 
@@ -186,7 +186,7 @@ Tras los dos fixes desplegados, la esposa de Gerry reintentó la participación 
 
 ### Dashboard de totales + indicador "Importe privado" en admin (6 mayo 2026)
 
-Tras el lanzamiento, primer lote de mejoras al panel admin orientadas a la operación diaria de Gerry. PR de **solo lectura** (riesgo mínimo): el público no se ve afectado y la colección `contributions` no se modifica.
+Tras el lanzamiento del 5 de mayo, primer lote de mejoras al panel admin orientadas a la operación diaria de Gerry. PR de **solo lectura** (riesgo mínimo): el público no se ve afectado y la colección `contributions` no se modifica. Mergeado y desplegado a producción el 6 de mayo (merge commit `da54859`, PR `claude/admin-dashboard-readonly`).
 
 **Cambios:**
 
@@ -214,7 +214,8 @@ Tras el lanzamiento, primer lote de mejoras al panel admin orientadas a la opera
 
 - `npm run build`: verde.
 - Lint: sin errores nuevos (los 7 errores y 3 warnings que reporta son pre-existentes y heredados, no introducidos por este PR).
-- Verificación visual: con `npm run dev` + bypass temporal de auth (revertido antes del commit), las 3 tarjetas se renderizan correctamente en mobile (1 columna) y desktop ≥720 px (3 columnas) con la primera destacada en alpine.
+- Verificación visual pre-merge: con `npm run dev` + bypass temporal de auth (revertido antes del commit), las 3 tarjetas se renderizan correctamente en mobile (1 columna) y desktop ≥720 px (3 columnas) con la primera destacada en alpine.
+- Verificación post-deploy en producción (6 mayo): las cifras del dashboard cuadran con el termómetro del hero, el pill "Importe privado" aparece en las contribuciones con `amountPrivate: true`, la página pública sigue idéntica al estado pre-merge.
 
 **Lecciones técnicas registradas:**
 
