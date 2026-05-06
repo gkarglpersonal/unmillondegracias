@@ -1,6 +1,6 @@
 # unmillondegracias.com — Historial técnico y lecciones aprendidas
 
-*Última actualización: 6 de mayo de 2026 (post-lanzamiento — PR 2 de mejoras al admin: reasignación manual de partida con transacción atómica)*
+*Última actualización: 6 de mayo de 2026 (post-lanzamiento — PR 1 y PR 2 desplegados y verificados en producción con reasignaciones reales)*
 
 ---
 
@@ -239,7 +239,7 @@ Segundo PR de mejoras al panel admin post-lanzamiento. **Escritura** sobre `cont
 - `npm run build`: verde.
 - Lint: 10 problemas (7 errores, 3 warnings), exactamente el mismo baseline que main pre-PR. Cero errores nuevos introducidos.
 - Verificación visual pre-merge: con `npm run dev` + bypass temporal de auth + mock data inyectada vía `sessionStorage` (todos los temporales revertidos antes del commit), se verificaron los 4 estados clave: filtro "Sin asignar" con conteo, botón "Cambiar partida" en cada fila, panel inline abierto con dropdown + warning amarillo cuando `wasUserChosen`, badges "Elegida por el donante" e "Importe privado" coexistiendo, hint "Reasignada · original: X".
-- Verificación post-deploy: pendiente de hacer junto al usuario con un test real end-to-end (ver lista de pasos en la descripción del PR).
+- Verificación post-deploy en producción (6 mayo, merge commit `f7b2116`): reasignaciones reales ejecutadas con éxito sobre contribuciones que estaban "sin asignar". Cambio persistente en Firestore, `originalTripItemId` y `manuallyAssignedAt` escritos correctamente, termómetros públicos de las partidas afectadas reajustados (vieja baja, nueva sube), dashboard de tres tarjetas reflejando el movimiento (Sin asignar baja, Asignado a partidas sube por el mismo importe), `config/general.totalRaised` intacto.
 
 **Lecciones técnicas registradas:**
 
