@@ -8,6 +8,7 @@ import ManualContributionForm from './ManualContributionForm.jsx';
 import ManualPhotoUploadForm from './ManualPhotoUploadForm.jsx';
 import ExportTools from './ExportTools.jsx';
 import EmailJsAlert from './EmailJsAlert.jsx';
+import AdminDashboardCards from './AdminDashboardCards.jsx';
 import styles from './AdminLayout.module.css';
 
 const TABS = [
@@ -39,6 +40,8 @@ export default function AdminLayout() {
           Cerrar sesión
         </button>
       </header>
+
+      <AdminDashboardCards />
 
       <nav className={styles.tabs} role="tablist">
         {TABS.map((tab) => (
