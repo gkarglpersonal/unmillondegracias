@@ -1,6 +1,6 @@
 # unmillondegracias.com — Tarjeta de referencia rápida
 
-*Para consulta rápida al inicio de cualquier conversación · actualizado 6 mayo 2026 (post-lanzamiento · PR 1 admin desplegado y verificado en producción)*
+*Para consulta rápida al inicio de cualquier conversación · actualizado 6 mayo 2026 (post-lanzamiento · PR 2 admin: reasignación manual de partida con transacción atómica)*
 
 ---
 
@@ -77,7 +77,8 @@ gsutil cors set cors.json gs://mariangeles-viaje-32169.firebasestorage.app
 ✅ **Primera participación real confirmada en Firestore + admin** tras los dos fixes urgentes (smoke test E2E completo)  
 ✅ **Subida manual de fotos desde admin** (pestaña "Subir foto") con `excludeFromFeed: true` para no notificar al feed del hero — commit `2ba44e6`  
 🎉 **Lanzamiento ejecutado el lunes 5 mayo 2026** — campaña activa, contribuciones reales en producción.  
-✅ **PR 1 admin mergeado y desplegado (6 mayo 2026, merge commit `da54859`)**: 3 tarjetas en tiempo real (Total recaudado · Asignado a partidas · Sin asignar) sobre `contributions` pagadas, montadas en la cabecera del panel admin entre header y tabs. Reusa `subscribeAdminContributions(callback)` legacy (sin listener nuevo). Indicador "Importe privado" como pill visible bajo el importe en `ContributionsList` (sustituye al icono Lock con tooltip). PR de solo lectura — sin tocar `firestore.rules` ni el flujo público. Verificado en producción.
+✅ **PR 1 admin mergeado y desplegado (6 mayo 2026, merge commit `da54859`)**: 3 tarjetas en tiempo real (Total recaudado · Asignado a partidas · Sin asignar) sobre `contributions` pagadas, montadas en la cabecera del panel admin entre header y tabs. Reusa `subscribeAdminContributions(callback)` legacy (sin listener nuevo). Indicador "Importe privado" como pill visible bajo el importe en `ContributionsList` (sustituye al icono Lock con tooltip). PR de solo lectura — sin tocar `firestore.rules` ni el flujo público. Verificado en producción.  
+🔧 **PR 2 admin (en review)**: reasignación manual de `tripItemId` desde fila en `/admin` con `reassignContributionTripItem(id, newTripItemId)` (transacción atómica que reajusta `raisedAmount` y `contributorCount` de las partidas afectadas; `config/general.totalRaised` no se toca). Nuevos campos `originalTripItemId` (one-time, preserva elección del donante) y `manuallyAssignedAt` (timestamp). Filtro "Sin asignar", botón inline "Cambiar partida", badge "Elegida por el donante" y hint "Reasignada · original: X". **Sin cambios en `firestore.rules`** (la regla `allow update, delete: if isAdmin()` ya cubre los nuevos campos).
 
 ## Riesgos residuales conocidos (no bloquean)
 

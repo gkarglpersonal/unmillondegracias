@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Lock } from 'lucide-react';
+import { Lock, UserCheck } from 'lucide-react';
 import {
   subscribeAdminContributions,
   fetchMoreAdminContributions,
@@ -7,6 +7,7 @@ import {
   unmarkContributionPaid,
   deleteContribution,
   updateContributionAmount,
+  reassignContributionTripItem,
 } from '../../firebase/contributions.js';
 import { useTripItems } from '../../hooks/useTripItems.js';
 import { formatCurrency } from '../../utils/formatCurrency.js';
@@ -17,7 +18,26 @@ const FILTERS = [
   { id: 'all', label: 'Todas' },
   { id: 'pending', label: 'Pendientes' },
   { id: 'paid', label: 'Pagadas' },
+  { id: 'unassigned', label: 'Sin asignar' },
 ];
+
+const isUnassigned = (c) =>
+  c.tripItemId === null ||
+  c.tripItemId === undefined ||
+  (typeof c.tripItemId === 'string' && c.tripItemId.trim() === '');
+
+/**
+ * Devuelve true si la contribución la eligió el donante en el formulario
+ * (partida concreta, sin reasignación posterior). Esa "elección original"
+ * se preserva para avisar al admin antes de sobrescribirla.
+ *
+ * Heurística: hay partida actual no nula y el campo `originalTripItemId`
+ * NO existe en el doc. La función `reassignContributionTripItem` escribe
+ * `originalTripItemId` solo la primera vez, así que su ausencia significa
+ * "nadie ha tocado esto desde que se creó".
+ */
+const wasUserChosen = (c) =>
+  !isUnassigned(c) && !('originalTripItemId' in c);
 
 const PAGE_SIZE = 50;
 
@@ -32,6 +52,9 @@ export default function ContributionsList() {
   const [editingId, setEditingId] = useState(null);
   const [editValue, setEditValue] = useState('');
   const [editError, setEditError] = useState(null);
+  const [reassigningId, setReassigningId] = useState(null);
+  const [reassignValue, setReassignValue] = useState('');
+  const [reassignError, setReassignError] = useState(null);
   const { items: tripItems } = useTripItems({ onlyActive: false });
 
   useEffect(() => {
@@ -56,10 +79,22 @@ export default function ContributionsList() {
 
   const tripItemName = (id) => tripItems.find((t) => t.id === id)?.name || 'Sin preferencia · fondo general';
 
+  // Solo partidas activas para el dropdown de reasignación. Las archivadas
+  // siguen visibles en la lista (al renderizar un nombre por id) pero no
+  // se pueden elegir como destino para no resucitarlas accidentalmente.
+  const activeTripItems = tripItems.filter((t) => t.active !== false);
+
   const filtered = items.filter((c) => {
     if (filter === 'all') return true;
+    if (filter === 'unassigned') return isUnassigned(c);
     return c.paymentStatus === filter;
   });
+
+  const filterCount = (id) => {
+    if (id === 'all') return items.length;
+    if (id === 'unassigned') return items.filter(isUnassigned).length;
+    return items.filter((c) => c.paymentStatus === id).length;
+  };
 
   const handleLoadMore = async () => {
     if (!hasMore || !lastDoc || loadingMore) return;
@@ -123,6 +158,10 @@ export default function ContributionsList() {
   };
 
   const startEdit = (c) => {
+    // Cierra el panel de reasignación si estaba abierto.
+    setReassigningId(null);
+    setReassignValue('');
+    setReassignError(null);
     setEditingId(c.id);
     setEditValue(c.amount && c.amount > 0 ? String(c.amount) : '');
     setEditError(null);
@@ -132,6 +171,72 @@ export default function ContributionsList() {
     setEditingId(null);
     setEditValue('');
     setEditError(null);
+  };
+
+  const startReassign = (c) => {
+    // Cierra el otro panel inline si estaba abierto.
+    setEditingId(null);
+    setEditValue('');
+    setEditError(null);
+    // Valor inicial del select: '' representa "sin asignar".
+    setReassigningId(c.id);
+    setReassignValue(c.tripItemId || '');
+    setReassignError(null);
+  };
+
+  const cancelReassign = () => {
+    setReassigningId(null);
+    setReassignValue('');
+    setReassignError(null);
+  };
+
+  const saveReassign = async (c) => {
+    setReassignError(null);
+    const oldId = c.tripItemId || null;
+    const newId = reassignValue === '' ? null : reassignValue;
+
+    if (oldId === newId) {
+      cancelReassign();
+      return;
+    }
+
+    const oldLabel = tripItemName(oldId);
+    const newLabel = tripItemName(newId);
+    const isPaid = c.paymentStatus === 'paid';
+    const amount = c.amount && c.amount > 0 ? Number(c.amount) : 0;
+
+    // Confirmación reforzada cuando la elección original fue del donante
+    // y aún no se había reasignado: aviso explícito para que Gerry no la
+    // sobrescriba por error.
+    if (wasUserChosen(c)) {
+      const ok = confirm(
+        `Esta aportación la eligió el donante (${oldLabel}). Si la cambias se guardará "${oldLabel}" como partida original. ¿Continuar?`
+      );
+      if (!ok) return;
+    }
+
+    let confirmText;
+    if (isPaid && amount > 0) {
+      confirmText = `Vas a reasignar de "${oldLabel}" a "${newLabel}". Como está pagada, ${formatCurrency(amount)} se moverán entre los termómetros (el de "${oldLabel}" baja, el de "${newLabel}" sube). El total recaudado no cambia. ¿Confirmas?`;
+    } else {
+      confirmText = `Vas a reasignar de "${oldLabel}" a "${newLabel}". Como la aportación está pendiente, los termómetros no se tocan todavía. ¿Confirmas?`;
+    }
+    if (!confirm(confirmText)) return;
+
+    setBusyId(c.id);
+    try {
+      await reassignContributionTripItem(c.id, newId);
+      cancelReassign();
+    } catch (err) {
+      console.error(err);
+      const msg =
+        err?.code === 'server-ack-timeout'
+          ? 'No se ha confirmado la escritura en el servidor. Comprueba la conexión y reintenta.'
+          : 'No se pudo reasignar la partida. Inténtalo de nuevo.';
+      setReassignError(msg);
+    } finally {
+      setBusyId(null);
+    }
   };
 
   const saveEdit = async (c) => {
@@ -187,9 +292,7 @@ export default function ContributionsList() {
               onClick={() => setFilter(f.id)}
             >
               {f.label}
-              <span className={styles.count}>
-                {f.id === 'all' ? items.length : items.filter((c) => c.paymentStatus === f.id).length}
-              </span>
+              <span className={styles.count}>{filterCount(f.id)}</span>
             </button>
           ))}
         </div>
@@ -198,7 +301,13 @@ export default function ContributionsList() {
       {loading ? (
         <p className={styles.empty}>Cargando…</p>
       ) : filtered.length === 0 ? (
-        <p className={styles.empty}>No hay aportaciones {filter !== 'all' ? `en estado "${filter}"` : ''}.</p>
+        <p className={styles.empty}>
+          {filter === 'all'
+            ? 'No hay aportaciones.'
+            : filter === 'unassigned'
+              ? 'No hay aportaciones sin asignar.'
+              : `No hay aportaciones en estado "${filter}".`}
+        </p>
       ) : (
         <>
         <ul className={styles.list}>
@@ -216,6 +325,23 @@ export default function ContributionsList() {
                   <span>{c.email}</span>
                   <span>·</span>
                   <span>{tripItemName(c.tripItemId)}</span>
+                  {wasUserChosen(c) && (
+                    <span
+                      className={styles.userChosenBadge}
+                      title="Partida elegida por el donante en el formulario. Avisa antes de cambiarla."
+                    >
+                      <UserCheck size={12} aria-hidden="true" />
+                      Elegida por el donante
+                    </span>
+                  )}
+                  {'originalTripItemId' in c && (
+                    <span
+                      className={styles.reassignedHint}
+                      title={`Reasignada manualmente. Original: ${tripItemName(c.originalTripItemId)}`}
+                    >
+                      Reasignada · original: {tripItemName(c.originalTripItemId)}
+                    </span>
+                  )}
                   {c.createdAt && (
                     <>
                       <span>·</span>
@@ -228,7 +354,52 @@ export default function ContributionsList() {
                 )}
               </div>
               <div className={styles.rowSide}>
-                {editingId === c.id ? (
+                {reassigningId === c.id ? (
+                  <div className={styles.editBox}>
+                    <label className={styles.editLabel}>
+                      Nueva partida
+                      <select
+                        className={styles.editSelect}
+                        value={reassignValue}
+                        onChange={(e) => setReassignValue(e.target.value)}
+                        autoFocus
+                      >
+                        <option value="">Sin asignar · fondo general</option>
+                        {activeTripItems.map((t) => (
+                          <option key={t.id} value={t.id}>
+                            {t.name}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    {wasUserChosen(c) && (
+                      <p className={styles.editWarning}>
+                        El donante eligió esta partida. Si la cambias se
+                        guardará como partida original para poder revisarla
+                        después.
+                      </p>
+                    )}
+                    {reassignError && <p className={styles.editError}>{reassignError}</p>}
+                    <div className={styles.editActions}>
+                      <button
+                        type="button"
+                        className="btn"
+                        disabled={busyId === c.id}
+                        onClick={() => saveReassign(c)}
+                      >
+                        Guardar
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-secondary"
+                        disabled={busyId === c.id}
+                        onClick={cancelReassign}
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
+                ) : editingId === c.id ? (
                   <div className={styles.editBox}>
                     <label className={styles.editLabel}>
                       Nuevo importe (€)
@@ -306,6 +477,14 @@ export default function ContributionsList() {
                         onClick={() => startEdit(c)}
                       >
                         Editar importe
+                      </button>
+                      <button
+                        type="button"
+                        className={styles.editBtn}
+                        disabled={busyId === c.id}
+                        onClick={() => startReassign(c)}
+                      >
+                        Cambiar partida
                       </button>
                       <button
                         type="button"
