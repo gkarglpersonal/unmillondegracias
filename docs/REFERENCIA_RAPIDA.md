@@ -1,6 +1,6 @@
 # unmillondegracias.com — Tarjeta de referencia rápida
 
-*Para consulta rápida al inicio de cualquier conversación · actualizado 2 mayo 2026 (auditoría pre-lanzamiento + dos fixes urgentes posteriores con E2E confirmado)*
+*Para consulta rápida al inicio de cualquier conversación · actualizado 6 mayo 2026 (post-lanzamiento · PR 1 admin desplegado y verificado en producción)*
 
 ---
 
@@ -61,7 +61,7 @@ gsutil cors set cors.json gs://mariangeles-viaje-32169.firebasestorage.app
 - Un commit por fix, prefijo claro: `fix(N):` / `docs(audits):`
 - Rama → PR GitHub → merge UI → GH Action despliega
 
-## Estado al 2 mayo 2026
+## Estado al 6 mayo 2026
 
 ✅ Página en producción con contenido real  
 ✅ Formulario funcional (emails a Gerry y PANGEA, form sidebar se limpia tras enviar)  
@@ -76,8 +76,8 @@ gsutil cors set cors.json gs://mariangeles-viaje-32169.firebasestorage.app
 ✅ **Fix urgente confirmación de escritura** (`setDoc` de Firestore resuelve contra cache local; sin `waitForPendingWrites` la UI podía decir "guardado" cuando el dato nunca llegó al servidor) — timeout 15 s + copy honesto (commit `4fb74bc`)  
 ✅ **Primera participación real confirmada en Firestore + admin** tras los dos fixes urgentes (smoke test E2E completo)  
 ✅ **Subida manual de fotos desde admin** (pestaña "Subir foto") con `excludeFromFeed: true` para no notificar al feed del hero — commit `2ba44e6`  
-✅ **Dashboard admin (post-lanzamiento)**: 3 tarjetas en tiempo real (Total recaudado · Asignado a partidas · Sin asignar) sobre `contributions` pagadas. Indicador "Importe privado" como pill visible bajo el importe en `ContributionsList`. PR de solo lectura.  
-🚀 **Lanzamiento: lunes 5 mayo 2026 — sin puntos técnicos pendientes bloqueantes**
+🎉 **Lanzamiento ejecutado el lunes 5 mayo 2026** — campaña activa, contribuciones reales en producción.  
+✅ **PR 1 admin mergeado y desplegado (6 mayo 2026, merge commit `da54859`)**: 3 tarjetas en tiempo real (Total recaudado · Asignado a partidas · Sin asignar) sobre `contributions` pagadas, montadas en la cabecera del panel admin entre header y tabs. Reusa `subscribeAdminContributions(callback)` legacy (sin listener nuevo). Indicador "Importe privado" como pill visible bajo el importe en `ContributionsList` (sustituye al icono Lock con tooltip). PR de solo lectura — sin tocar `firestore.rules` ni el flujo público. Verificado en producción.
 
 ## Riesgos residuales conocidos (no bloquean)
 

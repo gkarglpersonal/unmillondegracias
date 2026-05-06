@@ -1,6 +1,6 @@
 # unmillondegracias.com — Documento de referencia maestro
 
-*Última actualización: 2 de mayo de 2026 (auditoría pre-lanzamiento + dos fixes urgentes posteriores con smoke test E2E confirmado)*
+*Última actualización: 6 de mayo de 2026 (post-lanzamiento — primer PR de mejoras al admin desplegado: dashboard de totales y pill "Importe privado")*
 
 ---
 
@@ -148,7 +148,7 @@ Verificar con: `gsutil cors get gs://mariangeles-viaje-32169.firebasestorage.app
 
 ---
 
-## Estado al 2 de mayo de 2026
+## Estado al 6 de mayo de 2026
 
 - ✅ Página completa en producción con fotos y textos reales de Mariángeles
 - ✅ 29 partidas del viaje en Firestore (10.500 € total)
@@ -189,7 +189,11 @@ Verificar con: `gsutil cors get gs://mariangeles-viaje-32169.firebasestorage.app
   - Confirmación de escritura con `waitForPendingWrites`: `setDoc` resolvía contra cache local sin esperar al servidor (persistencia offline activa). Una red mala podía dejar la escritura solo en local mientras la UI mostraba "guardado". Ahora se exige ack del servidor con timeout de 15 s antes de declarar éxito; si timeout, copy específico ("comprueba tu conexión") y NO se hace cleanup local. Copy de `errors.save` reescrito para no afirmar falsamente "hemos llegado a guardar". Nuevo `errors.serverTimeout` (commit `4fb74bc`).
 - ✅ **Smoke test end-to-end confirmado**: la primera participación real del proyecto (esposa de Gerry, con partida concreta) se guardó correctamente en Firestore y apareció en `/admin` tras desplegar los dos fixes urgentes. Camino completo verificado: cliente público → rule acepta → `waitForPendingWrites` → `notifyPangea` → `notifyAdmin` → `SuccessOverlay` → doc visible en admin.
 - ✅ **Subida manual de fotos desde admin sin notificar al feed (commit `2ba44e6`)**: nueva pestaña "Subir foto" en `/admin` para incorporar fotos recibidas por WhatsApp en nombre de la persona. Los docs llevan `excludeFromFeed: true` y `subscribeRecentContributions` filtra el feed del hero por ese flag. Rule `allow create: if isAdmin()` añadida en `messageWall` para que el admin pueda escribir esos campos especiales sin pasar por las validaciones públicas. La rule pública sigue intacta.
-- 🚀 **Lista para lanzamiento: lunes 5 de mayo de 2026 — sin puntos técnicos pendientes bloqueantes**
+- 🎉 **Lanzamiento ejecutado el lunes 5 de mayo de 2026** — campaña activa, contribuciones reales en producción.
+- ✅ **PR 1 admin desplegado y verificado en producción (6 mayo 2026, merge commit `da54859`)** — primer PR de mejoras post-lanzamiento, **solo lectura**, sin tocar `firestore.rules` ni el flujo público:
+  - Dashboard de totales en la cabecera del panel admin: tres tarjetas en tiempo real sobre `contributions` pagadas — Total recaudado, Asignado a partidas (con `tripItemId` válido), Sin asignar (fondo general / sin preferencia). Reusa el listener legacy `subscribeAdminContributions(callback)` que ya viven `ExportTools` y `EmailJsAlert`, sin abrir un suscriptor nuevo.
+  - Indicador "Importe privado" en `ContributionsList`: el icono Lock minúsculo con tooltip se sustituye por un pill visible bajo el importe (mismo lenguaje visual que `manualBadge` y `status`). Etiqueta literal "Importe privado".
+  - Verificación post-deploy: las cifras del dashboard cuadran con el termómetro del hero, el pill aparece en las contribuciones con `amountPrivate: true`, página pública idéntica.
 
 **Riesgos residuales conocidos** (no bloquean el lanzamiento, documentados en [`docs/HISTORIAL_TECNICO.md`](HISTORIAL_TECNICO.md)):
 - Paginación admin pierde reactividad en docs >50 (hace falta refrescar para ver cambios en docs viejos).
