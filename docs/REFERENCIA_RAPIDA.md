@@ -76,6 +76,7 @@ gsutil cors set cors.json gs://mariangeles-viaje-32169.firebasestorage.app
 ✅ **Fix urgente confirmación de escritura** (`setDoc` de Firestore resuelve contra cache local; sin `waitForPendingWrites` la UI podía decir "guardado" cuando el dato nunca llegó al servidor) — timeout 15 s + copy honesto (commit `4fb74bc`)  
 ✅ **Primera participación real confirmada en Firestore + admin** tras los dos fixes urgentes (smoke test E2E completo)  
 ✅ **Subida manual de fotos desde admin** (pestaña "Subir foto") con `excludeFromFeed: true` para no notificar al feed del hero — commit `2ba44e6`  
+✅ **Dashboard admin (post-lanzamiento)**: 3 tarjetas en tiempo real (Total recaudado · Asignado a partidas · Sin asignar) sobre `contributions` pagadas. Indicador "Importe privado" como pill visible bajo el importe en `ContributionsList`. PR de solo lectura.  
 🚀 **Lanzamiento: lunes 5 mayo 2026 — sin puntos técnicos pendientes bloqueantes**
 
 ## Riesgos residuales conocidos (no bloquean)

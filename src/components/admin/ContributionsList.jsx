@@ -265,19 +265,19 @@ export default function ContributionsList() {
                 ) : (
                   <>
                     <div className={styles.amountRow}>
-                      {c.amountPrivate && c.amount > 0 && (
-                        <span
-                          className={styles.privateIcon}
-                          title="Privado: el donante prefiere que MªÁngeles no vea el importe"
-                          aria-label="Importe privado: oculto para MªÁngeles"
-                        >
-                          <Lock size={14} aria-hidden="true" />
-                        </span>
-                      )}
                       <span className={styles.amount}>
                         {c.amount ? formatCurrency(c.amount) : '—'}
                       </span>
                     </div>
+                    {c.amountPrivate && c.amount > 0 && (
+                      <span
+                        className={styles.privateBadge}
+                        title="Privado: el donante prefiere que MªÁngeles no vea el importe"
+                      >
+                        <Lock size={12} aria-hidden="true" />
+                        Importe privado
+                      </span>
+                    )}
                     <div className={styles.actions}>
                       {c.paymentStatus === 'pending' && c.amount > 0 && (
                         <button

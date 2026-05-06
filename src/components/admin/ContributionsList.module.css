@@ -139,13 +139,20 @@
   letter-spacing: -0.01em;
 }
 
-.privateIcon {
+.privateBadge {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  color: var(--text-muted);
+  gap: 4px;
+  font-size: var(--fs-caption);
+  font-weight: var(--fw-semibold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  background: rgba(201, 168, 76, 0.18);
+  color: var(--color-honey-600);
   cursor: help;
-  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .actions {

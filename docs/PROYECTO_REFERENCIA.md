@@ -90,7 +90,8 @@ El regalo es un **viaje a Argentina para dos personas**, organizado a través de
 
 Acceso con email/contraseña (Firebase Auth). Solo Gerry.
 
-- **Aportaciones:** ver todas, marcar como pagadas, añadir manuales, editar importes
+- **Dashboard de totales (cabecera):** tres tarjetas en tiempo real sobre `contributions` — Total recaudado, Asignado a partidas, Sin asignar (fondo general). Suma solo `paymentStatus === 'paid'`. Visible en todas las pestañas.
+- **Aportaciones:** ver todas, marcar como pagadas, añadir manuales, editar importes. Indicador "Importe privado" (pill con icono Lock) cuando `amountPrivate === true` y hay importe — distingue a simple vista quién prefiere que MªÁngeles no vea el importe exacto.
 - **Mensajes:** mostrar/ocultar (se publican automáticamente, no requieren aprobación)
 - **Fotos:** aprobar o rechazar (requieren aprobación manual antes de aparecer en la galería)
 - **Partidas:** crear, editar, archivar (soft delete con active: false), borrar si no tienen contribuciones

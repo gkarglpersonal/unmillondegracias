@@ -184,6 +184,45 @@ Tras los dos fixes desplegados, la esposa de Gerry reintentó la participación 
 - **Cleanup compensatorio: pensar en el caso "escrituras pendientes en cache".** Cuando una operación falla con `server-ack-timeout`, las escrituras anteriores siguen pendientes en cache local. Encolar `deleteDoc` para "limpiar" puede dejar el sistema en un estado peor (docs huérfanos si la pestaña se cierra antes de sincronizar todo). Mejor: no tocar nada y dejar que `setDoc` idempotente se aplique cuando reconecte; si el usuario reintenta, los IDs son los mismos.
 - **Copy de error: describir el estado real, no el deseado.** "Hemos llegado a guardar tu participación pero algo se ha cortado" sonaba a recovery posible, cuando en realidad no había nada guardado. La regla simple es: si no estás seguro de qué fase falló, no afirmes nada sobre lo que se hizo o no se hizo. "No hemos podido completar el envío. Vuelve a intentarlo." es mejor que cualquier afirmación falsa sobre el estado.
 
+### Dashboard de totales + indicador "Importe privado" en admin (6 mayo 2026)
+
+Tras el lanzamiento, primer lote de mejoras al panel admin orientadas a la operación diaria de Gerry. PR de **solo lectura** (riesgo mínimo): el público no se ve afectado y la colección `contributions` no se modifica.
+
+**Cambios:**
+
+- **Dashboard de totales (cabecera del panel admin)**: nuevo componente `AdminDashboardCards` con tres tarjetas calculadas en tiempo real desde `contributions` — Total recaudado, Asignado a partidas, Sin asignar. Suma `paymentStatus === 'paid'`. Visible en todas las pestañas.
+  - Reusa el modo legacy de `subscribeAdminContributions(callback)` (ya en uso por `ExportTools` y `EmailJsAlert`) para evitar abrir un listener nuevo. Volumen previsto (cientos de docs) tolera perfectamente leer todo en cliente.
+  - Cifras coherentes con los termómetros públicos: solo cuenta lo pagado. "Asignado" agrupa pagadas con `tripItemId` válido; "Sin asignar" agrupa pagadas con `tripItemId` null/vacío (fondo general / sin preferencia).
+  - Diseño coherente: la primera tarjeta (Total recaudado) usa el tono alpine destacado; las otras dos van en blanco con icono Lucide. Grid de 1 columna en móvil, 3 en ≥720 px.
+- **Indicador "Importe privado" en `ContributionsList`**: el icono `Lock` minúsculo que solo se veía como tooltip al hover se sustituye por un pill visible bajo el importe con fondo honey (mismo lenguaje visual que `manualBadge` y `status`). Etiqueta literal "Importe privado". Distingue a simple vista las contribuciones con `amountPrivate === true`.
+
+**Decisiones de diseño:**
+
+- **Listener reusado, no nuevo**: el dashboard NO crea un suscriptor adicional sobre `contributions`; reusa `subscribeAdminContributions(callback)` (modo legacy) que ya viven `ExportTools` y `EmailJsAlert`. Tres listeners independientes triplicarían reads sin beneficio. Si en el futuro la cantidad de docs crece a miles, conviene extraer un hook `useContributionsTotals` con `getCountFromServer` o agregaciones en `config/general`. Hoy no es necesario.
+- **Solo paid en el dashboard**: las pendientes se excluyen del cálculo a propósito. El dashboard refleja la realidad económica (lo que ya está en el termómetro), no la promesa. Esto evita confundir cifras del panel con cifras de la página pública.
+- **Pill "Importe privado" frente a icono solo**: el icono Lock con tooltip era invisible si Gerry no pasaba el ratón por encima (y en mobile no hay hover). El pill cumple la pauta del usuario "indicador visual claro a simple vista" sin romper el lenguaje del resto de badges.
+
+**Archivos tocados:**
+
+- `src/components/admin/AdminDashboardCards.jsx` (nuevo)
+- `src/components/admin/AdminDashboardCards.module.css` (nuevo)
+- `src/components/admin/AdminLayout.jsx` (monta el dashboard entre el header y los tabs)
+- `src/components/admin/ContributionsList.jsx` (sustituye el icono por el pill `privateBadge`)
+- `src/components/admin/ContributionsList.module.css` (nueva clase `privateBadge`, eliminada `privateIcon`)
+
+**Verificación:**
+
+- `npm run build`: verde.
+- Lint: sin errores nuevos (los 7 errores y 3 warnings que reporta son pre-existentes y heredados, no introducidos por este PR).
+- Verificación visual: con `npm run dev` + bypass temporal de auth (revertido antes del commit), las 3 tarjetas se renderizan correctamente en mobile (1 columna) y desktop ≥720 px (3 columnas) con la primera destacada en alpine.
+
+**Lecciones técnicas registradas:**
+
+- **Dashboards admin: derivar de los listeners ya activos antes que abrir uno nuevo**. Múltiples consumidores reusando un solo `subscribeAdminContributions` es más barato que tres listeners paralelos. La cardinalidad de `contributions` (estimada ≤ 500) hace que mover los totales a `config/general` no compense la complejidad.
+- **Indicadores admin: pill > icono cuando "a simple vista" es requisito explícito**. Un icono pequeño con tooltip falla en mobile y exige al admin mover el ratón para entender. Un pill con texto cumple la intención del requisito sin romper el lenguaje visual del resto de badges (`manualBadge`, `status`).
+
+---
+
 ### Subida manual de fotos desde admin sin notificar al feed (2 mayo 2026)
 
 **Caso de uso:** alguien envía una foto por WhatsApp u otro canal y el admin la quiere poner en la galería en su nombre, sin que aparezca en el feed de "X se ha sumado" del hero. Ese feed debe quedar reservado para participaciones reales del formulario público.
