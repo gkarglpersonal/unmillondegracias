@@ -1,6 +1,6 @@
 # unmillondegracias.com — Historial técnico y lecciones aprendidas
 
-*Última actualización: 6 de mayo de 2026 (post-lanzamiento — PR 1 de mejoras al admin desplegado)*
+*Última actualización: 6 de mayo de 2026 (post-lanzamiento — PR 2 de mejoras al admin: reasignación manual de partida con transacción atómica)*
 
 ---
 
@@ -184,6 +184,72 @@ Tras los dos fixes desplegados, la esposa de Gerry reintentó la participación 
 - **Cleanup compensatorio: pensar en el caso "escrituras pendientes en cache".** Cuando una operación falla con `server-ack-timeout`, las escrituras anteriores siguen pendientes en cache local. Encolar `deleteDoc` para "limpiar" puede dejar el sistema en un estado peor (docs huérfanos si la pestaña se cierra antes de sincronizar todo). Mejor: no tocar nada y dejar que `setDoc` idempotente se aplique cuando reconecte; si el usuario reintenta, los IDs son los mismos.
 - **Copy de error: describir el estado real, no el deseado.** "Hemos llegado a guardar tu participación pero algo se ha cortado" sonaba a recovery posible, cuando en realidad no había nada guardado. La regla simple es: si no estás seguro de qué fase falló, no afirmes nada sobre lo que se hizo o no se hizo. "No hemos podido completar el envío. Vuelve a intentarlo." es mejor que cualquier afirmación falsa sobre el estado.
 
+### Reasignación manual de partida desde fila de aportación (PR 2, 6 mayo 2026)
+
+Segundo PR de mejoras al panel admin post-lanzamiento. **Escritura** sobre `contributions` y `messageWall` (mirror público) en transacción atómica de Firestore. Habilita el flujo más demandado por la operación diaria: cuando una contribución llega a "fondo general" o a una partida llena, Gerry la mueve a la partida que toca sin romper los termómetros.
+
+**Cambios:**
+
+- **Nueva función `reassignContributionTripItem(contributionId, newTripItemId)` en `src/firebase/contributions.js`**:
+  - `runTransaction` con read-before-write estricto: lee la contribución, la nueva partida (validar existencia), la vieja partida (si hay y la contribución está pagada) y el mirror público.
+  - Escribe en `contributions[id]`:
+    - `tripItemId`: nuevo valor (string o `null` para "sin asignar / fondo general").
+    - `originalTripItemId`: SOLO la primera vez que se reasigna esa contribución (detectado por `'originalTripItemId' in c === false`). Conserva la elección original del donante o `null` si fue a fondo general. En reasignaciones posteriores no se sobrescribe — preserva la trazabilidad histórica.
+    - `manuallyAssignedAt`: timestamp del momento (siempre actualizado al timestamp más reciente).
+  - Escribe en `messageWall[mirrorId].tripItemId` para que la cara pública quede coherente. Si el mirror no existe (fue borrado antes), se omite sin tirar — patrón ya validado en `deleteContribution`.
+  - **Reajuste atómico de contadores en `tripItems`** (solo si la contribución está pagada y `amount > 0`):
+    - Decrementa `raisedAmount` y `contributorCount` de la partida vieja.
+    - Incrementa `raisedAmount` y `contributorCount` de la partida nueva.
+    - `config/general.totalRaised` y `totalContributors` **NO se tocan**: el total y el número de donantes son los mismos, solo cambia el bucket de partida. El dashboard de tres tarjetas (suma desde `contributions` directamente) reflejará el cambio: "Sin asignar" baja, "Asignado a partidas" sube por el mismo importe.
+  - Si la contribución está `pending`, no toca contadores: cuando se marque pagada en el futuro, `markContributionPaid` ya leerá el `tripItemId` actualizado y contará en la partida correcta.
+  - No-op si `newTripItemId === current` (incluido `null === null`).
+  - `awaitServerAck()` al final con timeout de 15 s, igual que `createContribution` y `createManualContribution`.
+
+- **UI en `ContributionsList.jsx`**:
+  - Nuevo filtro **"Sin asignar"** (4º) que muestra contribuciones con `tripItemId` null/vacío. Facilita el flujo de reasignación masiva del admin tras una ronda de cobros a fondo general.
+  - Nuevo botón **"Cambiar partida"** en la fila (junto a "Editar importe") que abre un panel inline (mismo patrón que el editor de importe) con:
+    - `<select>` con todas las partidas activas + opción "Sin asignar · fondo general", inicializado con el valor actual.
+    - Aviso amarillo (`editWarning`) si `wasUserChosen(c)` es true (el donante eligió la partida y aún no se ha reasignado): "El donante eligió esta partida. Si la cambias se guardará como partida original para poder revisarla después."
+    - Confirmación reforzada en `confirm()` cuando `wasUserChosen` es true (doble confirmación) y otra confirmación con detalle de los importes que se moverán entre termómetros.
+    - Botones Guardar / Cancelar — visualmente idénticos al editor de importe.
+  - Nuevo indicador **"Elegida por el donante"** en `rowMeta` (pill `userChosenBadge` con icono `UserCheck` de Lucide, tono alpine) cuando la contribución la eligió el donante y no se ha reasignado nunca. Heurística: `tripItemId !== null && !('originalTripItemId' in c)`.
+  - Nuevo hint **"Reasignada · original: X"** (`reassignedHint`, italic muted) cuando la contribución ya fue reasignada al menos una vez. Se muestra incluso si la elección original era "sin preferencia · fondo general", para que la trazabilidad sea simétrica.
+  - Filtro `unassigned` y conteo en el botón del filtro vía nueva helper `filterCount(id)`.
+
+**Decisiones de diseño:**
+
+- **Listener legacy reusado, sin abrir uno nuevo** — el componente sigue usando `subscribeAdminContributions(callback, { pageSize })` que ya estaba; solo añade derivaciones (filtro nuevo, conteo). El dashboard de tres tarjetas (PR 1) usa el listener legacy y se actualiza solo cuando una reasignación cambia el reparto entre "Asignado" y "Sin asignar".
+- **`config/general.totalRaised` no se reajusta en reasignaciones** — moverlo entre partidas no cambia el total. Si se reajustase, el termómetro general subiría/bajaría sin razón. Solo se mueven los contadores de las partidas afectadas.
+- **`originalTripItemId` se escribe una sola vez** — el campo guarda la elección original del donante, no el valor inmediatamente anterior. Esto permite preservar la trazabilidad de quién eligió qué incluso tras múltiples reasignaciones internas. Si se quisiera un historial completo, habría que migrar a un sub-doc `reassignmentHistory[]`; hoy no compensa la complejidad.
+- **`manuallyAssignedAt` se actualiza siempre** — en cada reasignación manual, el timestamp refleja el último cambio. Útil para auditar "cuándo movió Gerry la última vez esta contribución".
+- **No bloquear programáticamente cambios sobre contribuciones que el donante eligió** — el usuario lo pidió explícitamente: el admin debe ver un aviso visual y verbal, pero la decisión final es suya. El warning amarillo + la doble confirmación cumplen el balance entre seguridad y autonomía.
+- **Solo partidas activas en el dropdown** — `tripItems.filter(t => t.active !== false)`. Las archivadas siguen mostrándose en `rowMeta` (al renderizar el nombre por id) pero no se pueden seleccionar como destino, evitando resucitarlas accidentalmente.
+- **Indicador "Reasignada" simétrico para fondo general original** — incluso cuando `originalTripItemId === null`, mostramos "original: Sin preferencia · fondo general". Si se ocultara cuando es null, el admin perdería la información de "esta venía de fondo general y la moví yo". La regla "campo presente = ha sido tocada" es más limpia que "campo presente y no null".
+
+**Archivos tocados:**
+
+- `src/firebase/contributions.js` (nueva función `reassignContributionTripItem`)
+- `src/components/admin/ContributionsList.jsx` (filtro "Sin asignar", botón "Cambiar partida", panel inline, indicadores `wasUserChosen` y "Reasignada")
+- `src/components/admin/ContributionsList.module.css` (estilos `editSelect`, `editWarning`, `userChosenBadge`, `reassignedHint`)
+
+**Sin cambios en `firestore.rules`**: la regla actual de `contributions` y `messageWall` ya permite `allow update, delete: if isAdmin();`, que cubre la escritura de los nuevos campos `originalTripItemId` y `manuallyAssignedAt` y la actualización de `tripItemId` desde admin. No requiere `firebase deploy`.
+
+**Verificación:**
+
+- `npm run build`: verde.
+- Lint: 10 problemas (7 errores, 3 warnings), exactamente el mismo baseline que main pre-PR. Cero errores nuevos introducidos.
+- Verificación visual pre-merge: con `npm run dev` + bypass temporal de auth + mock data inyectada vía `sessionStorage` (todos los temporales revertidos antes del commit), se verificaron los 4 estados clave: filtro "Sin asignar" con conteo, botón "Cambiar partida" en cada fila, panel inline abierto con dropdown + warning amarillo cuando `wasUserChosen`, badges "Elegida por el donante" e "Importe privado" coexistiendo, hint "Reasignada · original: X".
+- Verificación post-deploy: pendiente de hacer junto al usuario con un test real end-to-end (ver lista de pasos en la descripción del PR).
+
+**Lecciones técnicas registradas:**
+
+- **Reasignación entre buckets sin tocar el total global** — cuando una operación mueve "stock" entre dos contadores hijos pero su suma no cambia, NO hay que tocar el contador padre. Tocarlo introduce ruido visible (el termómetro global oscila sin razón) y posibles drifts si la transacción falla a mitad. Es la versión "transferencia bancaria" del patrón: `from -= X; to += X; total = total`.
+- **`'campo' in obj` para detectar "tocado al menos una vez"** — más fiable que `obj.campo === undefined` o `obj.campo === null`, porque un dato puede ser legítimamente `null` y aún así existir el campo. La regla "presencia del campo = ha sido tocado" se aplica también a `originalTripItemId`: si la primera reasignación es desde `tripItemId: null`, escribimos `originalTripItemId: null`, que es semánticamente "su elección original fue sin preferencia". El check `in` lo distingue de la ausencia total del campo.
+- **Inline edit pattern reusado para múltiples acciones del row** — la fila de aportación ya tenía el patrón "click acción → reemplaza acciones por panel con input + Guardar/Cancelar" para editar importe. Añadir reasignación reusó el mismo `editBox` con un `<select>` en lugar de `<input number>`. Mantener estados separados (`editingId` vs `reassigningId`) y cerrar uno al abrir el otro mantiene la UX limpia sin necesidad de un router de modos. El patrón escala a 3-4 acciones complejas sin ceremonias adicionales.
+- **No bloquear acciones que solo necesitan aviso** — en la primera versión consideré bloquear la reasignación sobre contribuciones donde el donante eligió la partida. La decisión final fue NO bloquear y mostrar un aviso visual + doble confirmación. El admin tiene contexto que el código no tiene (puede saber que la partida ya está llena, o que el donante por WhatsApp dijo que la cambia). Bloquear con buena intención puede convertirse en una fricción que el usuario tiene que rodear, deteriorando la confianza en el panel.
+
+---
+
 ### Dashboard de totales + indicador "Importe privado" en admin (6 mayo 2026)
 
 Tras el lanzamiento del 5 de mayo, primer lote de mejoras al panel admin orientadas a la operación diaria de Gerry. PR de **solo lectura** (riesgo mínimo): el público no se ve afectado y la colección `contributions` no se modifica. Mergeado y desplegado a producción el 6 de mayo (merge commit `da54859`, PR `claude/admin-dashboard-readonly`).
@@ -322,6 +388,9 @@ git push
 
 **`contributions`** — aportaciones recibidas
 - `name`, `email`, `tripItemId`, `amount`, `paymentStatus` (pending/paid), `createdAt`
+- `amountPrivate` (boolean opcional): el donante prefiere que MªÁngeles no vea el importe.
+- `originalTripItemId` (opcional, escrito una sola vez por `reassignContributionTripItem`): si el admin reasigna la partida desde `/admin`, el valor previo se guarda aquí en la PRIMERA reasignación y no se sobrescribe en reasignaciones posteriores. Su presencia indica "ha sido reasignada al menos una vez"; su ausencia indica "está como la creó el donante".
+- `manuallyAssignedAt` (opcional, timestamp): se actualiza en cada reasignación manual desde el panel admin.
 - Solo visible para admin
 
 **`messageWall`** — mirror público de los mensajes

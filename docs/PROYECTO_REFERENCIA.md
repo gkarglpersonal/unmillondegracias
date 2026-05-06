@@ -1,6 +1,6 @@
 # unmillondegracias.com — Documento de referencia maestro
 
-*Última actualización: 6 de mayo de 2026 (post-lanzamiento — primer PR de mejoras al admin desplegado: dashboard de totales y pill "Importe privado")*
+*Última actualización: 6 de mayo de 2026 (post-lanzamiento — PR 2 de mejoras al admin: reasignación manual de partida desde fila de aportación, con transacción atómica y reajuste de termómetros)*
 
 ---
 
@@ -91,7 +91,7 @@ El regalo es un **viaje a Argentina para dos personas**, organizado a través de
 Acceso con email/contraseña (Firebase Auth). Solo Gerry.
 
 - **Dashboard de totales (cabecera):** tres tarjetas en tiempo real sobre `contributions` — Total recaudado, Asignado a partidas, Sin asignar (fondo general). Suma solo `paymentStatus === 'paid'`. Visible en todas las pestañas.
-- **Aportaciones:** ver todas, marcar como pagadas, añadir manuales, editar importes. Indicador "Importe privado" (pill con icono Lock) cuando `amountPrivate === true` y hay importe — distingue a simple vista quién prefiere que MªÁngeles no vea el importe exacto.
+- **Aportaciones:** ver todas, marcar como pagadas, añadir manuales, editar importes, **cambiar la partida** (reasignación atómica con reajuste de termómetros). Filtros: Todas · Pendientes · Pagadas · **Sin asignar** (las que están en fondo general / sin preferencia, candidatas a reasignación). Indicador "Importe privado" (pill con icono Lock) cuando `amountPrivate === true` y hay importe — distingue a simple vista quién prefiere que MªÁngeles no vea el importe exacto. Indicador "Elegida por el donante" (pill con icono UserCheck) cuando la partida actual la eligió el contribuyente y no se ha reasignado nunca; al reasignarla se guarda la elección original como `originalTripItemId` y aparece un hint "Reasignada · original: X" para trazabilidad.
 - **Mensajes:** mostrar/ocultar (se publican automáticamente, no requieren aprobación)
 - **Fotos:** aprobar o rechazar (requieren aprobación manual antes de aparecer en la galería)
 - **Partidas:** crear, editar, archivar (soft delete con active: false), borrar si no tienen contribuciones
@@ -194,6 +194,10 @@ Verificar con: `gsutil cors get gs://mariangeles-viaje-32169.firebasestorage.app
   - Dashboard de totales en la cabecera del panel admin: tres tarjetas en tiempo real sobre `contributions` pagadas — Total recaudado, Asignado a partidas (con `tripItemId` válido), Sin asignar (fondo general / sin preferencia). Reusa el listener legacy `subscribeAdminContributions(callback)` que ya viven `ExportTools` y `EmailJsAlert`, sin abrir un suscriptor nuevo.
   - Indicador "Importe privado" en `ContributionsList`: el icono Lock minúsculo con tooltip se sustituye por un pill visible bajo el importe (mismo lenguaje visual que `manualBadge` y `status`). Etiqueta literal "Importe privado".
   - Verificación post-deploy: las cifras del dashboard cuadran con el termómetro del hero, el pill aparece en las contribuciones con `amountPrivate: true`, página pública idéntica.
+- 🔧 **PR 2 admin (en review, 6 mayo 2026)** — segundo PR post-lanzamiento, **escritura** sobre `contributions` y `messageWall` con transacción atómica. Sin cambios en `firestore.rules` (la regla actual `allow update, delete: if isAdmin()` ya cubre los nuevos campos):
+  - Reasignación manual de la partida (`tripItemId`) desde la fila de cada aportación en `/admin`, vía `reassignContributionTripItem(id, newTripItemId)` en `src/firebase/contributions.js`. Transacción que actualiza la contribution, el mirror de `messageWall` y reajusta `raisedAmount` + `contributorCount` en las dos partidas afectadas (vieja y nueva). `config/general.totalRaised` no se toca: el total no cambia, solo cambia el bucket.
+  - Nuevos campos en docs de `contributions`: `originalTripItemId` (escrito una sola vez la primera vez que se reasigna; preserva la elección original) y `manuallyAssignedAt` (timestamp del último cambio).
+  - Filtro "Sin asignar" en `ContributionsList` (4º filtro junto a Todas/Pendientes/Pagadas), botón "Cambiar partida" inline en cada fila (mismo patrón visual que "Editar importe"), badge "Elegida por el donante" cuando la contribución viene del formulario público con partida concreta y aún no se ha reasignado, hint "Reasignada · original: X" tras la primera reasignación.
 
 **Riesgos residuales conocidos** (no bloquean el lanzamiento, documentados en [`docs/HISTORIAL_TECNICO.md`](HISTORIAL_TECNICO.md)):
 - Paginación admin pierde reactividad en docs >50 (hace falta refrescar para ver cambios en docs viejos).

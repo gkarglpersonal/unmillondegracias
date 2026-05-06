@@ -588,6 +588,157 @@ export async function deleteContribution(contributionId) {
 }
 
 /**
+ * Reasigna una contribución a otra partida (o a "sin asignar") con
+ * reajuste atómico de contadores.
+ *
+ * Diseño:
+ *  - `runTransaction` que lee la contribution, valida la partida nueva
+ *    (si no es null), lee la partida vieja (si la hay) y el mirror público.
+ *  - Escribe en `contributions[id]`:
+ *      - `tripItemId`: nuevo valor (string o null).
+ *      - `originalTripItemId`: solo se escribe la PRIMERA vez que se
+ *        reasigna esa contribución. Conserva el valor original que el
+ *        donante eligió (o null si fue a fondo general). En reasignaciones
+ *        posteriores no se sobrescribe — la "primera vez" se detecta por
+ *        `'originalTripItemId' in c === false`.
+ *      - `manuallyAssignedAt`: timestamp de la reasignación (siempre se
+ *        actualiza al timestamp más reciente).
+ *  - Escribe en `messageWall[mirrorId].tripItemId` para que la cara pública
+ *    quede coherente. Si el mirror no existe (fue borrado antes), se omite
+ *    sin tirar — patrón ya aplicado en `deleteContribution`.
+ *  - **Reajuste de contadores en `tripItems`** (solo si está pagada y
+ *    tiene amount > 0):
+ *      - Decrementa `raisedAmount` y `contributorCount` de la partida vieja.
+ *      - Incrementa `raisedAmount` y `contributorCount` de la partida nueva.
+ *      - `config/general.totalRaised` y `totalContributors` NO se tocan:
+ *        el total y el número de donantes son los mismos, solo cambia el
+ *        bucket. El dashboard de tres tarjetas (suma desde `contributions`
+ *        directamente) reflejará el cambio: "Sin asignar" baja, "Asignado
+ *        a partidas" sube por el mismo importe.
+ *  - Si la contribución NO está pagada, no toca contadores: cuando se
+ *    marque pagada en el futuro, `markContributionPaid` ya leerá el
+ *    `tripItemId` actualizado y contará en la partida correcta.
+ *  - No-op si `newTripItemId === current` (incluido `null === null`).
+ *
+ * Validaciones:
+ *  - newTripItemId puede ser null (vuelve a "sin asignar / fondo general"),
+ *    string no vacío (debe existir en `tripItems`) o cadena vacía (se
+ *    normaliza a null).
+ *  - Si la contribución no existe, lanza error.
+ *  - Si newTripItemId no es null y la partida nueva no existe, lanza error
+ *    (el dropdown solo permite seleccionar partidas reales, así que esto
+ *    es defensa en profundidad).
+ *
+ * @param {string} contributionId
+ * @param {string|null} newTripItemId
+ * @returns {Promise<{ previousTripItemId: string|null, newTripItemId: string|null, originalTripItemIdRecorded: boolean }>}
+ */
+export async function reassignContributionTripItem(contributionId, newTripItemId) {
+  if (!contributionId) throw new Error('reassignContributionTripItem: falta id.');
+
+  // Normaliza cadena vacía a null. Acepta null o string no vacío como entrada.
+  const normalizedNew =
+    newTripItemId === null || newTripItemId === undefined || newTripItemId === ''
+      ? null
+      : String(newTripItemId);
+
+  const result = await runTransaction(db, async (tx) => {
+    const cRef = doc(db, C_PRIVATE, contributionId);
+    const cSnap = await tx.get(cRef);
+    if (!cSnap.exists()) throw new Error('Contribución no encontrada.');
+    const c = cSnap.data();
+
+    const oldTripItemId = c.tripItemId || null;
+    if (oldTripItemId === normalizedNew) {
+      // No-op: misma partida o ambos null.
+      return {
+        previousTripItemId: oldTripItemId,
+        newTripItemId: normalizedNew,
+        originalTripItemIdRecorded: false,
+      };
+    }
+
+    const isPaid = c.paymentStatus === 'paid';
+    const amount = c.amount && c.amount > 0 ? Number(c.amount) : 0;
+    const shouldRebalance = isPaid && amount > 0;
+
+    // Lecturas previas a cualquier write (regla de read-before-write
+    // de las transacciones de Firestore). Lectura defensiva de la partida
+    // nueva para validar existencia; lectura de la partida vieja solo si
+    // hay que decrementarla.
+    if (normalizedNew !== null) {
+      const newSnap = await tx.get(doc(db, C_TRIP, normalizedNew));
+      if (!newSnap.exists()) {
+        throw new Error(`Partida ${normalizedNew} no existe.`);
+      }
+    }
+    if (shouldRebalance && oldTripItemId !== null) {
+      // Lectura para satisfacer read-before-write antes del update.
+      await tx.get(doc(db, C_TRIP, oldTripItemId));
+    }
+
+    // Mirror público: leer si existe para actualizar `tripItemId`. Si no
+    // existe (fue borrado antes), se omite sin abortar la transacción.
+    let mirrorExists = false;
+    if (c.publicMessageId) {
+      const mSnap = await tx.get(doc(db, C_PUBLIC, c.publicMessageId));
+      mirrorExists = mSnap.exists();
+    }
+
+    // 1. Update de la contribution. `originalTripItemId` solo se escribe
+    //    la primera vez que se reasigna (preserva la elección original).
+    const updateData = {
+      tripItemId: normalizedNew,
+      manuallyAssignedAt: serverTimestamp(),
+    };
+    const isFirstReassignment = !('originalTripItemId' in c);
+    if (isFirstReassignment) {
+      updateData.originalTripItemId = oldTripItemId;
+    }
+    tx.update(cRef, updateData);
+
+    // 2. Update del mirror público para que la cara visible (muro de
+    //    mensajes, asociación con la partida) quede coherente.
+    if (c.publicMessageId && mirrorExists) {
+      tx.update(doc(db, C_PUBLIC, c.publicMessageId), {
+        tripItemId: normalizedNew,
+      });
+    }
+
+    // 3. Reajuste de contadores. Solo se mueven entre partidas; el total
+    //    global no cambia.
+    if (shouldRebalance) {
+      if (oldTripItemId !== null) {
+        tx.update(doc(db, C_TRIP, oldTripItemId), {
+          raisedAmount: increment(-amount),
+          contributorCount: increment(-1),
+        });
+      }
+      if (normalizedNew !== null) {
+        tx.update(doc(db, C_TRIP, normalizedNew), {
+          raisedAmount: increment(amount),
+          contributorCount: increment(1),
+        });
+      }
+    }
+
+    return {
+      previousTripItemId: oldTripItemId,
+      newTripItemId: normalizedNew,
+      originalTripItemIdRecorded: isFirstReassignment,
+    };
+  });
+
+  // Confirmar ack del servidor antes de declarar éxito al admin. Mismo
+  // motivo que en createContribution: la persistencia offline de Firestore
+  // resuelve la transacción contra cache local antes de la confirmación
+  // real del servidor.
+  await awaitServerAck();
+
+  return result;
+}
+
+/**
  * Edita el `amount` de una contribución existente reajustando los
  * contadores afectados.
  *
