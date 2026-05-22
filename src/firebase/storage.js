@@ -50,6 +50,19 @@ async function downloadBlobByPath(srcRef) {
 }
 
 /**
+ * Tiempo máximo que esperamos a que termine una subida a Storage antes de
+ * darla por estancada. Sin esto, una subida sobre una conexión móvil débil
+ * que va goteando bytes (sin cortar la conexión del todo) puede dejar la
+ * promise de `uploadBytes` sin resolver NI rechazar para siempre: el catch
+ * del llamador nunca salta y el botón se queda clavado en "Enviando…".
+ *
+ * Mismo patrón que `awaitServerAck` en `contributions.js`: una carrera contra
+ * un temporizador que rechaza con un `code` propio para que el llamador lo
+ * distinga y muestre copy específico ("la foto tarda demasiado").
+ */
+const UPLOAD_TIMEOUT_MS = 60000;
+
+/**
  * Genera un id único corto, sin colisiones prácticas.
  */
 function newId() {
@@ -88,7 +101,25 @@ export async function uploadPhoto(file, { contributionId } = {}) {
   const storagePath = `photos/pending/${id}-${slug}.${ext}`;
 
   const storageRef = ref(storage, storagePath);
-  await uploadBytes(storageRef, file, { contentType: file.type });
+
+  // Carrera contra un temporizador: si la subida se estanca, rechazamos con
+  // `code: 'upload-timeout'` para que el catch de fase 'photo' del llamador
+  // se dispare y el botón se desbloquee. NOTA: `uploadBytes` no es cancelable,
+  // así que la petición subyacente puede seguir corriendo en segundo plano
+  // tras perder la carrera; no consume recursos relevantes y el reintento es
+  // idempotente (mismo path estable por contributionId).
+  await Promise.race([
+    uploadBytes(storageRef, file, { contentType: file.type }),
+    new Promise((_, reject) =>
+      setTimeout(() => {
+        const err = new Error(
+          'Tiempo de espera agotado al subir la foto a Storage.'
+        );
+        err.code = 'upload-timeout';
+        reject(err);
+      }, UPLOAD_TIMEOUT_MS)
+    ),
+  ]);
 
   return { storagePath };
 }

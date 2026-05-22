@@ -60,7 +60,11 @@ export default function PhotoUploader({ value, onChange }) {
       onChange({ file: compressed, previewUrl: url });
     } catch (e2) {
       console.error(e2);
-      setErr('No se pudo procesar la imagen.');
+      setErr(
+        e2?.code === 'image-too-large'
+          ? 'La foto es demasiado pesada y no hemos podido reducirla. Prueba con una más ligera.'
+          : 'No se pudo procesar la imagen.'
+      );
     } finally {
       setBusy(false);
     }

@@ -89,6 +89,8 @@ export const copy = {
     errors: {
       photo:
         'No hemos podido subir tu foto. Comprueba el formato (JPG, PNG, HEIC) y vuelve a intentarlo.',
+      photoTimeout:
+        'La foto está tardando demasiado en subir. Prueba con una foto más ligera o con mejor conexión.',
       save: 'No hemos podido guardar tu participación. Pulsa Reintentar — si vuelve a fallar, escríbeme a gerardo.kargl@gmail.com y lo arreglo a mano.',
       serverTimeout:
         'No hemos podido confirmar que tu participación llegara al servidor. Comprueba tu conexión y pulsa Reintentar — no se duplicará.',
