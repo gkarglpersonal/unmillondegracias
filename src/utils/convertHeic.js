@@ -6,9 +6,11 @@
  * browser-image-compression. Sin conversión, el upload falla con un error
  * genérico para el usuario.
  *
- * Por qué heic2any: pure-JS (libheif compilado a wasm), MIT, sin servicios
- * externos, sin coste. La carga vía dynamic import: el wasm pesa ~3 MB y
- * solo lo bajamos cuando alguien sube HEIC.
+ * Por qué heic-to: usa una build moderna de libheif compilada a wasm
+ * (libheif-js), MIT, sin servicios externos ni coste. A diferencia de
+ * heic2any@0.0.4 (libheif antiguo), decodifica también el HEIC que generan
+ * los móviles Samsung (verificado con un Galaxy S24 Ultra real). La carga va
+ * por dynamic import: el wasm solo se baja cuando alguien sube un HEIC.
  */
 
 const HEIC_MIME = ['image/heic', 'image/heif', 'image/heic-sequence', 'image/heif-sequence'];
@@ -22,21 +24,21 @@ export function isHeic(file) {
 }
 
 /**
- * Convierte un File HEIC/HEIF a un File JPEG. Tira si no se puede
- * (permite al caller mostrar un mensaje claro de "formato no compatible").
+ * Convierte un File HEIC/HEIF a un File JPEG. Tira si no se puede, para que
+ * el caller muestre un mensaje honesto de que la foto no se pudo procesar
+ * (NO un falso "formato no compatible, sube JPG/PNG/WEBP").
  *
  * @param {File} file
  * @returns {Promise<File>} JPEG con extensión .jpg
  */
 export async function convertHeicToJpeg(file) {
-  const { default: heic2any } = await import('heic2any');
-  const result = await heic2any({
+  // heic-to expone `heicTo`, que devuelve un único Blob JPEG.
+  const { heicTo } = await import('heic-to');
+  const blob = await heicTo({
     blob: file,
-    toType: 'image/jpeg',
+    type: 'image/jpeg',
     quality: 0.85,
   });
-  // heic2any puede devolver Blob o Blob[] (HEIC multi-imagen); cogemos el primero.
-  const blob = Array.isArray(result) ? result[0] : result;
   const newName = (file.name || 'foto').replace(/\.(heic|heif)$/i, '') + '.jpg';
   return new File([blob], newName, { type: 'image/jpeg', lastModified: Date.now() });
 }
