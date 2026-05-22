@@ -271,11 +271,13 @@ export default function ParticipationForm({
       const msg =
         code === 'server-ack-timeout'
           ? copy.form.errors.serverTimeout
-          : phase === 'photo'
-            ? copy.form.errors.photo
-            : phase === 'save'
-              ? copy.form.errors.save
-              : copy.form.errors.unknown;
+          : code === 'upload-timeout'
+            ? copy.form.errors.photoTimeout
+            : phase === 'photo'
+              ? copy.form.errors.photo
+              : phase === 'save'
+                ? copy.form.errors.save
+                : copy.form.errors.unknown;
       setSubmitError(msg);
     } finally {
       submittingRef.current = false;
