@@ -7,8 +7,8 @@ import styles from './PhotoUploader.module.css';
 
 const MAX_BYTES = 8 * 1024 * 1024; // 8 MB pre-compresión
 
-const HEIC_INCOMPATIBLE_MSG =
-  'Este formato no es compatible. Por favor, sube la foto en JPG, PNG o WEBP.';
+const HEIC_CONVERT_FAILED_MSG =
+  'No hemos podido procesar esta foto. Vuelve a intentarlo; si sigue fallando, escríbeme a gerardo.kargl@gmail.com o mándamela por WhatsApp y la subo yo.';
 
 export default function PhotoUploader({ value, onChange }) {
   const inputRef = useRef(null);
@@ -50,7 +50,7 @@ export default function PhotoUploader({ value, onChange }) {
           // soportar wasm o el archivo es HEIC corrupto/cifrado.
           // Mensaje claro para que sepa qué hacer.
           console.error('HEIC conversion failed:', heicErr);
-          setErr(HEIC_INCOMPATIBLE_MSG);
+          setErr(HEIC_CONVERT_FAILED_MSG);
           return;
         }
       }
