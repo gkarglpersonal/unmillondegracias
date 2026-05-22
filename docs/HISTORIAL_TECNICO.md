@@ -1,6 +1,6 @@
 # unmillondegracias.com — Historial técnico y lecciones aprendidas
 
-*Última actualización: 6 de mayo de 2026 (post-lanzamiento — PR 1 y PR 2 desplegados y verificados en producción con reasignaciones reales)*
+*Última actualización: 22 de mayo de 2026 (arreglo del timeout de subida de foto en el formulario; antes 6 de mayo: PR 1 y PR 2 desplegados y verificados en producción con reasignaciones reales)*
 
 ---
 
@@ -310,6 +310,23 @@ Tras el lanzamiento del 5 de mayo, primer lote de mejoras al panel admin orienta
 - **Compensar el filtro en cliente sobreproveyendo la query.** `limit(n)` + filtro cliente puede dejar el feed con menos de N elementos si los más recientes están excluidos. La mitigación trivial (`limit(n * 3)`) es práctica para volúmenes pequeños; reads extra son baratos. La alternativa "correcta" sería un índice compuesto `where('excludeFromFeed', '!=', true) + orderBy('createdAt')`, pero `!=` en Firestore excluye también los docs sin el campo — los docs antiguos se perderían. Filtro en cliente es más robusto ante cambios de schema.
 - **Dos cláusulas `allow create` en la misma rule de Firestore.** En `messageWall`, `allow create: if isAdmin()` y `allow create: if [validaciones públicas]` coexisten: Firestore las evalúa en OR, así que el admin pasa por la primera y un usuario público por la segunda. Permite mantener las validaciones estrictas del público (regex de IDs, photoUrl null obligado, etc.) sin restringirlas al admin que las necesita relajadas para las subidas manuales.
 - **Limpieza puntual de Firestore con `firebase-admin`.** Para borrar datos en producción a partir de un patrón (`name === "Yvonne"`), un script Node de un solo uso con `firebase-admin` + `service-account.json` es más seguro y rápido que la consola de Firebase. Patrón: crear `scripts/_temp-XXX.mjs` con modo dry-run por defecto y flag `--delete` para confirmar; ejecutar dry-run primero para revisar qué encuentra; ejecutar con `--delete` para borrar; eliminar el script tras la operación. El prefijo `_temp-` lo distingue de scripts permanentes y recuerda que hay que limpiarlo. Storage de blobs requiere paso explícito separado: el script aquí no los tocó, quedaron como follow-up de limpieza (5 blobs huérfanos en `photos/approved/`).
+
+### Fix urgente: botón del formulario clavado en "Enviando…" por subida de foto sin timeout (22 mayo 2026)
+
+Una persona rellenó el formulario de contribución con una foto pesada (foto de móvil de una imagen impresa antigua, varios MB) y, al enviar con conexión lenta, el botón se quedó clavado en "Enviando…" para siempre, sin mensaje de error y sin cerrarse ni completarse. Diagnóstico y arreglo desplegados el mismo día vía PR (commit `227a8dd`, merge `1f58da8`, PR #35).
+
+| Aspecto | Detalle |
+|---|---|
+| **Síntoma** | Al enviar el formulario con una foto pesada y conexión lenta, el botón se quedaba en "Enviando…" indefinidamente. No salía ningún error, el formulario no se cerraba ni se completaba. La persona no tenía forma de reintentar salvo recargar la página. |
+| **Causa raíz** | La subida de la foto (`uploadPhoto` -> `uploadBytes` en `src/firebase/storage.js`) no tenía timeout a nivel de aplicación. Sobre una conexión móvil débil que gotea bytes sin cortar la conexión del todo, la promise de `uploadBytes` puede quedarse sin resolver NI rechazar. Como el handler `onValid` la espera con `await`, el `catch` nunca saltaba y el bloque `finally` que resetea `submitting` nunca se ejecutaba. Un `finally` solo corre cuando la promise esperada resuelve o rechaza; una promise colgada lo deja sin ejecutar. Factor agravante: si la compresión fallaba, `compressImage.js` devolvía el archivo original sin avisar (hasta 8 MB), subiendo a ciegas algo pesado que estanca la subida con más facilidad. |
+| **Fix** | (a) `Promise.race` con timeout de 60 s alrededor de `uploadBytes` en `uploadPhoto`, calcando el patrón de `awaitServerAck` en `contributions.js`. Si la subida se estanca, rechaza con `code: 'upload-timeout'`; el `catch` de fase `'photo'` ya existente en `ParticipationForm` lo recoge, el `finally` desbloquea el botón y la persona puede reintentar. (b) `compressImage.js` ya no devuelve el original a ciegas: si la compresión falla y el archivo sigue por encima de 3 MB, lanza `Error` con `code: 'image-too-large'`; `PhotoUploader` lo muestra con un mensaje claro al elegir la foto. (c) Copy nuevo `errors.photoTimeout` en `copy.js`, mostrado cuando el código del error es `'upload-timeout'`. |
+| **Archivos tocados** | `src/firebase/storage.js`, `src/utils/compressImage.js`, `src/components/form/PhotoUploader.jsx`, `src/components/form/ParticipationForm.jsx`, `src/content/copy.js`. |
+| **Fuera de alcance (a propósito)** | No se migró a `uploadBytesResumable` ni se añadió barra de progreso; no se tocó EmailJS ni `sendWithRetry`; no se cambió la lógica de escritura en Firestore ni el orden de operaciones. |
+| **Commit + deploy** | `227a8dd` (PR #35, merge `1f58da8`). Build verde, `npx gh-pages -d dist`, `main` sincronizado con `origin/main`. |
+
+**Lección técnica registrada:**
+
+- **Toda operación de red que pueda estancarse necesita un timeout a nivel de aplicación.** Es la misma clase de fallo que el bug del regex de las rules de Firestore: igual que una rule podía rechazar una escritura en silencio, una subida sin timeout puede colgarse en silencio. El SDK de Storage tiene un reintento interno (~2 min por defecto), pero ese contador solo cuenta cuando una petición falla; si la conexión se estanca sin fallar, no salta y la promise no se resuelve nunca. El `await` que la espera deja el `catch` y el `finally` sin ejecutar, y cualquier estado de carga ("Enviando…", "Aprobando…") se queda clavado. El patrón `Promise.race` contra un temporizador, ya usado en `awaitServerAck` para las escrituras de Firestore, es la red de seguridad correcta y debería aplicarse a cualquier `await` de red sin garantía de terminar. Queda como follow-up revisar `emailjs.send`, que hoy tampoco tiene timeout propio aunque su payload diminuto lo hace mucho menos propenso a estancarse.
 
 ---
 

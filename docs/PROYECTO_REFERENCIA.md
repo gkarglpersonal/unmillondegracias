@@ -1,6 +1,6 @@
 # unmillondegracias.com — Documento de referencia maestro
 
-*Última actualización: 6 de mayo de 2026 (post-lanzamiento — PR 1 y PR 2 desplegados y verificados en producción con contribuciones reales: dashboard, pill "Importe privado" y reasignación manual de partida)*
+*Última actualización: 22 de mayo de 2026 (arreglo del timeout de subida de foto en el formulario; antes 6 de mayo: PR 1 y PR 2 con dashboard, pill "Importe privado" y reasignación manual de partida)*
 
 ---
 
@@ -148,7 +148,7 @@ Verificar con: `gsutil cors get gs://mariangeles-viaje-32169.firebasestorage.app
 
 ---
 
-## Estado al 6 de mayo de 2026
+## Estado al 22 de mayo de 2026
 
 - ✅ Página completa en producción con fotos y textos reales de Mariángeles
 - ✅ 29 partidas del viaje en Firestore (10.500 € total)
@@ -199,6 +199,8 @@ Verificar con: `gsutil cors get gs://mariangeles-viaje-32169.firebasestorage.app
   - Nuevos campos en docs de `contributions`: `originalTripItemId` (escrito una sola vez la primera vez que se reasigna; preserva la elección original) y `manuallyAssignedAt` (timestamp del último cambio).
   - Filtro "Sin asignar" en `ContributionsList` (4º filtro junto a Todas/Pendientes/Pagadas), botón "Cambiar partida" inline en cada fila (mismo patrón visual que "Editar importe"), badge "Elegida por el donante" cuando la contribución viene del formulario público con partida concreta y aún no se ha reasignado, hint "Reasignada · original: X" tras la primera reasignación.
   - Verificación post-deploy con reasignaciones reales (6 mayo): contribuciones sin asignar movidas a partidas concretas; persistencia en Firestore confirmada, `originalTripItemId` y `manuallyAssignedAt` escritos correctamente, termómetros públicos reajustados y dashboard de tres tarjetas reflejando el cambio (Sin asignar baja, Asignado a partidas sube por el mismo importe).
+
+- ✅ **Fix del botón "Enviando…" clavado por subida de foto sin timeout (22 mayo 2026, PR #35, merge `1f58da8`)**. Detalle en [`HISTORIAL_TECNICO.md`](HISTORIAL_TECNICO.md). Una foto pesada subida con conexión lenta dejaba el botón del formulario clavado en "Enviando…" para siempre, sin error, porque `uploadBytes` no tenía timeout y la promise colgada impedía que el `finally` reseteara el botón. Solución: `Promise.race` con timeout de 60 s en `uploadPhoto` (mismo patrón que `awaitServerAck`) que rechaza con `upload-timeout` y permite reintentar, más endurecimiento de `compressImage` para no subir el original a ciegas si supera 3 MB. Sin tocar EmailJS, Firestore ni el orden de operaciones.
 
 **Riesgos residuales conocidos** (no bloquean el lanzamiento, documentados en [`docs/HISTORIAL_TECNICO.md`](HISTORIAL_TECNICO.md)):
 - Paginación admin pierde reactividad en docs >50 (hace falta refrescar para ver cambios en docs viejos).
