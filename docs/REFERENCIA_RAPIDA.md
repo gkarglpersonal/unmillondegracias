@@ -1,6 +1,6 @@
 # unmillondegracias.com — Tarjeta de referencia rápida
 
-*Para consulta rápida al inicio de cualquier conversación · actualizado 22 mayo 2026 (arreglo del timeout de subida de foto; antes 6 mayo: PR 1 y PR 2 verificados en producción con reasignaciones reales)*
+*Para consulta rápida al inicio de cualquier conversación · actualizado 23 mayo 2026 (arreglo de conversión HEIC para móviles Samsung con heic-to; antes 22 mayo: timeout de subida de foto)*
 
 ---
 
@@ -61,10 +61,10 @@ gsutil cors set cors.json gs://mariangeles-viaje-32169.firebasestorage.app
 - Un commit por fix, prefijo claro: `fix(N):` / `docs(audits):`
 - Rama → PR GitHub → merge UI → GH Action despliega
 
-## Estado al 22 mayo 2026
+## Estado al 23 mayo 2026
 
 ✅ Página en producción con contenido real  
-✅ Formulario funcional (emails a Gerry y PANGEA, form sidebar se limpia tras enviar, subida de foto con timeout de 60 s para que el botón no se quede clavado en "Enviando…")  
+✅ Formulario funcional (emails a Gerry y PANGEA, form sidebar se limpia tras enviar, subida de foto con timeout de 60 s para que el botón no se quede clavado en "Enviando…", conversión HEIC de móvil Samsung/iPhone con heic-to)  
 ✅ Admin funcional (mensajes, fotos, aportaciones, partidas, exportar)  
 ✅ CORS configurado · Authorized domains configurado  
 ✅ **Fase 1, 2, 3 completadas + auditoría pre-lanzamiento aplicada** (8 hallazgos cerrados: C1, C2, C3, I2, I4, I6, I7, I12)  
@@ -102,5 +102,6 @@ I1 (seed.js no preserva contadores), I5 (admin row2 sin media query), I8 (HeroSe
 **Termómetros vacíos en mobile:** Ya no debería pasar (timeout 2 s eliminado). Si pasa: red genuinamente caída, `error` del hook lo confirma; en el futuro un consumer puede mostrar "Conexión perdida"  
 **Formulario rechaza con `errors.save` o `errors.serverTimeout`:** Si dice "no hemos podido guardar", inspeccionar `firestore.rules` — el regex de `tripItemId` debe permitir tanto IDs deterministas (`tripItem-XX`, 11 chars) como auto-IDs de Firestore (20 chars). Si dice "no hemos podido confirmar que tu participación llegara al servidor", el cliente está offline o muy lento; comprobar la conexión y reintentar (los IDs se conservan, no se duplica)  
 **Botón del formulario clavado en "Enviando…":** Pasaba al subir una foto pesada con conexión lenta: la subida sin timeout dejaba la promise colgada y el `finally` no reseteaba el botón. Arreglado el 22 mayo 2026 (PR #35): `uploadPhoto` tiene timeout de 60 s y muestra "La foto tarda demasiado" con opción de Reintentar; `compressImage` rechaza fotos que no consigue reducir por debajo de 3 MB. Si reaparece, revisar `UPLOAD_TIMEOUT_MS` en `src/firebase/storage.js` y la conexión del cliente  
+**No se puede subir una foto HEIC del móvil (Samsung/iPhone) o sale "No hemos podido procesar esta foto":** El formulario convierte los HEIC a JPEG en el navegador con `heic-to` (libheif moderno) antes de subirlos. Si una foto HEIC concreta no se convierte, el usuario ve un mensaje honesto con opción de reintentar o de mandar la foto a Gerry por WhatsApp. Antes (con `heic2any@0.0.4`, libheif antiguo) los HEIC de Samsung se rechazaban con un falso "formato no compatible"; arreglado el 23 mayo 2026 cambiando a `heic-to`. Si reaparece con algún móvil nuevo, mirar `src/utils/convertHeic.js`  
 **Tras `firebase deploy --only firestore:rules` algo deja de funcionar:** Smoke test E2E manual obligatorio antes de declarar deploy verde — crear al menos una contribución que cubra todas las ramas (`tripItemId: null` y `tripItemId: 'tripItem-XX'`, mensaje vacío y con texto). Las pruebas de admin no detectan bugs de validación del formulario público porque `createManualContribution` es una transacción distinta  
 **Aparece spam o entradas no deseadas en el feed del hero:** Si las subiste desde el formulario público, hay que borrarlas de `messageWall` (y la `contributions` asociada por `publicMessageId`) — un script `firebase-admin` puntual con dry-run primero. Si en su lugar quieres subir fotos en nombre de alguien sin spammear el feed, usa la pestaña **"Subir foto"** del admin: marca `excludeFromFeed: true` automáticamente y sigue el flujo de aprobación normal en "Fotos". La galería sí muestra esas fotos al aprobarlas; el feed del hero no

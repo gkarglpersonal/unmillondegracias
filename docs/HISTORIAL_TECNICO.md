@@ -1,6 +1,6 @@
 # unmillondegracias.com — Historial técnico y lecciones aprendidas
 
-*Última actualización: 22 de mayo de 2026 (arreglo del timeout de subida de foto en el formulario; antes 6 de mayo: PR 1 y PR 2 desplegados y verificados en producción con reasignaciones reales)*
+*Última actualización: 23 de mayo de 2026 (arreglo de conversión HEIC para móviles Samsung: heic2any sustituido por heic-to; antes 22 de mayo: timeout de subida de foto en el formulario)*
 
 ---
 
@@ -327,6 +327,25 @@ Una persona rellenó el formulario de contribución con una foto pesada (foto de
 **Lección técnica registrada:**
 
 - **Toda operación de red que pueda estancarse necesita un timeout a nivel de aplicación.** Es la misma clase de fallo que el bug del regex de las rules de Firestore: igual que una rule podía rechazar una escritura en silencio, una subida sin timeout puede colgarse en silencio. El SDK de Storage tiene un reintento interno (~2 min por defecto), pero ese contador solo cuenta cuando una petición falla; si la conexión se estanca sin fallar, no salta y la promise no se resuelve nunca. El `await` que la espera deja el `catch` y el `finally` sin ejecutar, y cualquier estado de carga ("Enviando…", "Aprobando…") se queda clavado. El patrón `Promise.race` contra un temporizador, ya usado en `awaitServerAck` para las escrituras de Firestore, es la red de seguridad correcta y debería aplicarse a cualquier `await` de red sin garantía de terminar. Queda como follow-up revisar `emailjs.send`, que hoy tampoco tiene timeout propio aunque su payload diminuto lo hace mucho menos propenso a estancarse.
+
+### Fix urgente: las fotos HEIC de móvil se rechazaban con un mensaje engañoso de formato (23 mayo 2026)
+
+Al subir una foto HEIC desde el móvil, el formulario la rechazaba con un mensaje que culpaba al formato. Afecta especialmente a Samsung (verificado con un Galaxy S24 Ultra real) y también a iPhone, que dispara en HEIC por defecto. Es un problema serio de captación: muchas profesoras y exalumnos suben fotos desde el móvil. Arreglado verificando primero en laboratorio y luego cambiando la librería de conversión. Mergeado vía PR (commit `529635f`, merge `3c85a73`).
+
+| Aspecto | Detalle |
+|---|---|
+| **Síntoma** | Al elegir una foto HEIC en el formulario (Samsung Galaxy S24 Ultra; también iPhone), salía "Este formato no es compatible. Por favor, sube la foto en JPG, PNG o WEBP". Imposible de seguir para quien dispara en HEIC desde el móvil. |
+| **Causa raíz** | La librería de conversión `heic2any@0.0.4` lleva un build antiguo de libheif (wasm) que no decodifica los HEIC que generan los móviles Samsung. El formato del archivo no tenía nada malo: la librería se quedaba corta. La detección era correcta (`isHeic` reconocía el archivo e intentaba convertirlo), pero la conversión lanzaba y el `catch` mostraba un mensaje que culpaba al formato en vez de admitir que había fallado la conversión interna. Funcionaba con el HEIC del iPhone de pruebas, así que el fallo pasó desapercibido hasta que llegó un Samsung real. |
+| **Verificación previa** | Antes de tocar producción, prueba de laboratorio aislada (carpetas temporales, sin tocar el proyecto): (a) en Node, un libheif moderno (`libheif-js` 1.19.x vía `heic-convert`) decodificó la foto real del S24 Ultra a un JPEG de 12 MP; (b) en navegador, una mini app de Vite con `heic-to` convirtió la misma foto, confirmado en escritorio y en el propio Galaxy. Solo tras esa luz verde se cambió la dependencia. |
+| **Fix** | Sustituir `heic2any` por `heic-to` (`^1.4.3`), que usa `libheif-js` moderno (1.19.x). En `convertHeic.js`, `convertHeicToJpeg` llama a `heicTo` (devuelve un único Blob JPEG), conservando la misma firma y el mismo tipo de resultado (`File` JPEG) y la detección `isHeic` síncrona por MIME + extensión (no se cambia para no tocar la firma que usa el formulario). En `PhotoUploader.jsx`, mensaje de error honesto y accionable (constante renombrada a `HEIC_CONVERT_FAILED_MSG`): ya no dice "sube JPG/PNG/WEBP", sino que sugiere reintentar o mandar la foto a Gerry por WhatsApp para subirla desde el admin. |
+| **Archivos tocados** | `package.json`, `package-lock.json`, `src/utils/convertHeic.js`, `src/components/form/PhotoUploader.jsx`. |
+| **Fuera de alcance (a propósito)** | No se tocó la validación de tamaño (8 MB), el timeout de subida, la compresión, la lógica de Firestore ni los emails. |
+| **Nota técnica** | El chunk de `heic-to` pesa más que el de heic2any (2,73 MB / 672 KB gzip frente a 1,35 MB / 341 KB gzip), pero sigue siendo lazy-loaded por dynamic import: solo se descarga cuando alguien sube un HEIC, así que no afecta a la carga inicial de la página. |
+| **Commit + deploy** | `529635f` (merge `3c85a73`). Build verde, `npx gh-pages -d dist`, `main` sincronizado con `origin/main`. Verificado en producción: las fotos HEIC de Samsung se suben correctamente. |
+
+**Lección técnica registrada:**
+
+- **Las dependencias congeladas y muy antiguas acumulan deuda silenciosa.** `heic2any@0.0.4` llevaba años sin mantenerse y su libheif viejo no seguía el ritmo de los HEIC que generan los móviles nuevos. Como funcionaba con el HEIC del iPhone de pruebas, el problema no se vio hasta que un Samsung real lo destapó. Y un mensaje de error que culpa al usuario ("formato no compatible, sube otro") por algo que en realidad es un fallo interno de la librería es doblemente dañino: oculta la causa real y manda al usuario a una solución imposible. Antes de cambiar una dependencia, verificar en el entorno real (navegador, y el propio móvil que falla) en vez de fiarse solo de Node evita cambios a ciegas: aquí Node demostró que el decodificador moderno entiende el archivo, pero solo la prueba en el Galaxy real confirmó que la conversión completa funciona en el navegador.
 
 ---
 
