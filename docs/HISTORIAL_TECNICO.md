@@ -1,6 +1,6 @@
 # unmillondegracias.com — Historial técnico y lecciones aprendidas
 
-*Última actualización: 23 de mayo de 2026 (arreglo de conversión HEIC para móviles Samsung: heic2any sustituido por heic-to; antes 22 de mayo: timeout de subida de foto en el formulario)*
+*Última actualización: 23 de mayo de 2026 (hover de la tarjeta de partida completa restaurado en portátiles táctiles quitando el gate `any-hover`; antes ese día: conversión HEIC para móviles Samsung con heic-to; el 22 de mayo: timeout de subida de foto en el formulario)*
 
 ---
 
@@ -346,6 +346,25 @@ Al subir una foto HEIC desde el móvil, el formulario la rechazaba con un mensaj
 **Lección técnica registrada:**
 
 - **Las dependencias congeladas y muy antiguas acumulan deuda silenciosa.** `heic2any@0.0.4` llevaba años sin mantenerse y su libheif viejo no seguía el ritmo de los HEIC que generan los móviles nuevos. Como funcionaba con el HEIC del iPhone de pruebas, el problema no se vio hasta que un Samsung real lo destapó. Y un mensaje de error que culpa al usuario ("formato no compatible, sube otro") por algo que en realidad es un fallo interno de la librería es doblemente dañino: oculta la causa real y manda al usuario a una solución imposible. Antes de cambiar una dependencia, verificar en el entorno real (navegador, y el propio móvil que falla) en vez de fiarse solo de Node evita cambios a ciegas: aquí Node demostró que el decodificador moderno entiende el archivo, pero solo la prueba en el Galaxy real confirmó que la conversión completa funciona en el navegador.
+
+---
+
+### Fix: el hover no elevaba la tarjeta completa de partida en portátiles táctiles, aunque sí el botón "Regalar" (23 mayo 2026)
+
+Segunda iteración sobre el hover de las tarjetas de partida (`TripItemCard`). El fix anterior (PR #37) cambió el gate de `(hover: hover) and (pointer: fine)` a `@media (any-hover: hover)` y mejoró el comportamiento, pero tras desplegar quedó un resto: en un portátil táctil el botón "Regalar" **sí** se elevaba al pasar el ratón, pero la **tarjeta completa no**. La pista inicial ("el botón funciona, luego `any-hover` está bien, el problema es otro") resultó ser un falso positivo, y desmontarlo fue la clave. Mergeado vía PR #38 (commit `03c90d9`, merge `69dc281`).
+
+| | |
+|---|---|
+| **Síntoma** | En un portátil táctil, al pasar el ratón el botón "Regalar" se elevaba (lift + sombra), pero la tarjeta contenedora `.card` se quedaba plana. |
+| **Por qué despistaba** | El lift del botón viene de la regla **global** `.btn:hover` (`src/styles/globals.css`), que **no está dentro de ningún `@media`**: se aplica siempre, en cualquier dispositivo. El lift de la tarjeta venía de `.card:hover`, que **sí** estaba envuelto en `@media (any-hover: hover)`. Que el botón reaccionara no demostraba nada sobre `any-hover` — su hover nunca dependió de ese media query. |
+| **Verificación previa** | Sin tocar nada: (a) descargado el bundle CSS en producción (`/assets/index-*.css`) — confirmado que `.card:hover` es la **única** regla que da transform/sombra a `.card` y que sigue gateada por `@media (any-hover: hover)`; no hay override, ni `pointer-events`, ni segundo `.card:hover`. (b) La estructura DOM (`<article class="card">` envolviendo todo) es correcta, y `:hover` se propaga de hijo a padre — si el gate estuviera activo, hover sobre el botón elevaría **ambos**. Como no ocurre, por eliminación `@media (any-hover: hover)` se evalúa **falso** en ese portátil pese a tener trackpad. |
+| **Solución** | Quitar el `@media (any-hover: hover)` que envolvía `.card:hover` y dejar la regla sin gatear, **replicando el patrón de `.btn:hover`** (que ya funcionaba en ese equipo). Cambio mínimo en un solo archivo (`TripItemCard.module.css`); no toca acordeón, estructura, layout, botón ni lógica. |
+| **Peaje aceptado** | En móviles puramente táctiles la tarjeta puede quedar "elevada" un instante tras tocarla hasta tocar en otro sitio (*sticky hover*) — idéntico al que ya tiene el botón "Regalar" desde siempre, sin quejas. |
+| **Commit + deploy** | `03c90d9` (merge `69dc281`, PR #38). `main` sincronizado con `origin/main`; `gh-pages` desplegado. |
+
+**Lección técnica registrada:**
+
+- **Un elemento hijo que "funciona" no valida la regla del padre si cada uno hereda de una fuente distinta.** Aquí dos lifts visualmente parecidos venían de reglas independientes: una global ungated (botón) y una gateada por media query (tarjeta). Asumir que el comportamiento del hijo prueba el del padre llevó a descartar la causa correcta. La forma de romper el falso positivo fue rastrear **de qué regla concreta** sale cada efecto (no dar por hecho que comparten origen) y comprobar el CSS realmente desplegado, no solo el fuente. Y una lección de hardware: `any-hover: hover` no es universalmente fiable — hay portátiles táctiles/híbridos que lo reportan `false` pese a tener trackpad, así que para un efecto puramente decorativo conviene no gatearlo y aceptar el sticky-hover, igual que ya hacían los botones globales.
 
 ---
 
