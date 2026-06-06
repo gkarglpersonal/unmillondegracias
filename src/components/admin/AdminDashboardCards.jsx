@@ -1,17 +1,23 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Wallet, MapPin, HelpCircle } from 'lucide-react';
+import { Wallet, MapPin, HelpCircle, Target } from 'lucide-react';
 import { subscribeAdminContributions } from '../../firebase/contributions.js';
+import { useTripItems } from '../../hooks/useTripItems.js';
+import { sumCampaignTarget } from '../../utils/campaignTarget.js';
 import { formatCurrency } from '../../utils/formatCurrency.js';
 import styles from './AdminDashboardCards.module.css';
 
 /**
  * Dashboard de totales en la parte superior del panel admin.
  *
- * Tres tarjetas calculadas en tiempo real desde la colección `contributions`:
+ * Cuatro tarjetas calculadas en tiempo real:
  *   1. Total recaudado: suma de `amount` de TODAS las pagadas.
  *   2. Total asignado a partidas: suma de las pagadas con `tripItemId` válido.
  *   3. Total sin asignar: suma de las pagadas con `tripItemId` null/vacío
  *      (fondo general / "sin preferencia").
+ *   4. Objetivo total: suma de `targetAmount` de las partidas activas. Solo
+ *      lectura. Es el mismo cálculo que alimenta el porcentaje global de la
+ *      página pública (`sumCampaignTarget`); aquí se muestra en euros, cifra
+ *      que NO aparece en ningún sitio de la página pública.
  *
  * Diseño:
  *  - Solo lectura: no modifica nada de la colección. Reusa el legacy
@@ -27,6 +33,12 @@ import styles from './AdminDashboardCards.module.css';
 export default function AdminDashboardCards() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Partidas activas: fuente del objetivo total (suma de targetAmount), el
+  // mismo cálculo que el porcentaje global público. Listener reactivo: si se
+  // añade, edita o archiva una partida, el objetivo se recalcula solo.
+  const { items: tripItems, loading: tripItemsLoading } = useTripItems();
+  const campaignTarget = useMemo(() => sumCampaignTarget(tripItems), [tripItems]);
 
   useEffect(() => {
     const unsub = subscribeAdminContributions((docs) => {
@@ -80,6 +92,7 @@ export default function AdminDashboardCards() {
       hint: 'Suma de aportaciones pagadas',
       amount: totals.totalAmount,
       count: totals.totalCount,
+      loading,
       Icon: Wallet,
       tone: 'primary',
     },
@@ -89,6 +102,7 @@ export default function AdminDashboardCards() {
       hint: 'Pagadas con partida elegida',
       amount: totals.assignedAmount,
       count: totals.assignedCount,
+      loading,
       Icon: MapPin,
       tone: 'soft',
     },
@@ -98,14 +112,25 @@ export default function AdminDashboardCards() {
       hint: 'Pagadas a fondo general · sin preferencia',
       amount: totals.unassignedAmount,
       count: totals.unassignedCount,
+      loading,
       Icon: HelpCircle,
+      tone: 'soft',
+    },
+    {
+      key: 'target',
+      label: 'Objetivo total',
+      hint: 'Suma de las partidas activas · solo lectura',
+      amount: campaignTarget,
+      count: null,
+      loading: tripItemsLoading,
+      Icon: Target,
       tone: 'soft',
     },
   ];
 
   return (
     <section className={styles.grid} aria-label="Resumen de aportaciones">
-      {cards.map(({ key, label, hint, amount, count, Icon, tone }) => (
+      {cards.map(({ key, label, hint, amount, count, loading: cardLoading, Icon, tone }) => (
         <article
           key={key}
           className={`${styles.card} ${tone === 'primary' ? styles.cardPrimary : ''}`}
@@ -117,16 +142,18 @@ export default function AdminDashboardCards() {
             <span className={styles.label}>{label}</span>
           </div>
           <p className={styles.amount}>
-            {loading ? '—' : formatCurrency(amount)}
+            {cardLoading ? '—' : formatCurrency(amount)}
           </p>
-          <p className={styles.meta}>
-            <span className={styles.count}>
-              {loading ? '…' : count}
-            </span>
-            <span className={styles.metaLabel}>
-              {count === 1 ? 'aportación' : 'aportaciones'}
-            </span>
-          </p>
+          {count !== null && (
+            <p className={styles.meta}>
+              <span className={styles.count}>
+                {cardLoading ? '…' : count}
+              </span>
+              <span className={styles.metaLabel}>
+                {count === 1 ? 'aportación' : 'aportaciones'}
+              </span>
+            </p>
+          )}
           <p className={styles.hint}>{hint}</p>
         </article>
       ))}
