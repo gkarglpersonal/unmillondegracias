@@ -1,6 +1,6 @@
 # unmillondegracias.com — Tarjeta de referencia rápida
 
-*Para consulta rápida al inicio de cualquier conversación · actualizado 23 mayo 2026 (arreglo de conversión HEIC para móviles Samsung con heic-to; antes 22 mayo: timeout de subida de foto)*
+*Para consulta rápida al inicio de cualquier conversación · actualizado 6 junio 2026 (objetivo de campaña dinámico: porcentaje público + tarjeta admin en euros sobre la suma de `targetAmount` de partidas activas, PR #40 abierto; antes 23 mayo: arreglo de conversión HEIC para móviles Samsung con heic-to)*
 
 ---
 
@@ -61,7 +61,7 @@ gsutil cors set cors.json gs://mariangeles-viaje-32169.firebasestorage.app
 - Un commit por fix, prefijo claro: `fix(N):` / `docs(audits):`
 - Rama → PR GitHub → merge UI → GH Action despliega
 
-## Estado al 23 mayo 2026
+## Estado al 6 junio 2026
 
 ✅ Página en producción con contenido real  
 ✅ Formulario funcional (emails a Gerry y PANGEA, form sidebar se limpia tras enviar, subida de foto con timeout de 60 s para que el botón no se quede clavado en "Enviando…", conversión HEIC de móvil Samsung/iPhone con heic-to)  
@@ -78,7 +78,8 @@ gsutil cors set cors.json gs://mariangeles-viaje-32169.firebasestorage.app
 ✅ **Subida manual de fotos desde admin** (pestaña "Subir foto") con `excludeFromFeed: true` para no notificar al feed del hero — commit `2ba44e6`  
 🎉 **Lanzamiento ejecutado el lunes 5 mayo 2026** — campaña activa, contribuciones reales en producción.  
 ✅ **PR 1 admin mergeado y desplegado (6 mayo 2026, merge commit `da54859`)**: 3 tarjetas en tiempo real (Total recaudado · Asignado a partidas · Sin asignar) sobre `contributions` pagadas, montadas en la cabecera del panel admin entre header y tabs. Reusa `subscribeAdminContributions(callback)` legacy (sin listener nuevo). Indicador "Importe privado" como pill visible bajo el importe en `ContributionsList` (sustituye al icono Lock con tooltip). PR de solo lectura — sin tocar `firestore.rules` ni el flujo público. Verificado en producción.  
-✅ **PR 2 admin mergeado, desplegado y verificado en producción (6 mayo 2026, merge commit `f7b2116`)**: reasignación manual de `tripItemId` desde fila en `/admin` con `reassignContributionTripItem(id, newTripItemId)` (transacción atómica que reajusta `raisedAmount` y `contributorCount` de las partidas afectadas; `config/general.totalRaised` no se toca). Nuevos campos `originalTripItemId` (one-time, preserva elección del donante) y `manuallyAssignedAt` (timestamp). Filtro "Sin asignar", botón inline "Cambiar partida", badge "Elegida por el donante" y hint "Reasignada · original: X". **Sin cambios en `firestore.rules`** (la regla `allow update, delete: if isAdmin()` ya cubre los nuevos campos). Reasignaciones reales ejecutadas con éxito: persistencia en Firestore + termómetros públicos + dashboard de tres tarjetas todo coherente.
+✅ **PR 2 admin mergeado, desplegado y verificado en producción (6 mayo 2026, merge commit `f7b2116`)**: reasignación manual de `tripItemId` desde fila en `/admin` con `reassignContributionTripItem(id, newTripItemId)` (transacción atómica que reajusta `raisedAmount` y `contributorCount` de las partidas afectadas; `config/general.totalRaised` no se toca). Nuevos campos `originalTripItemId` (one-time, preserva elección del donante) y `manuallyAssignedAt` (timestamp). Filtro "Sin asignar", botón inline "Cambiar partida", badge "Elegida por el donante" y hint "Reasignada · original: X". **Sin cambios en `firestore.rules`** (la regla `allow update, delete: if isAdmin()` ya cubre los nuevos campos). Reasignaciones reales ejecutadas con éxito: persistencia en Firestore + termómetros públicos + dashboard de tres tarjetas todo coherente.  
+🔄 **Objetivo de campaña dinámico — PR #40 abierto (6 junio 2026, pendiente de merge y deploy)**: el porcentaje global público (hero + cabecera de experiencias) deja de usar el target fijo `config.totalTripCost ?? 10500` y se calcula sumando los `targetAmount` de las partidas activas (`sumCampaignTarget` + hook `useCampaignTarget` sobre el listener reactivo de `tripItems`); altas/ediciones/archivados se reflejan sin tocar código. Público solo muestra `%`, nunca euros. Admin gana una 4ª tarjeta de solo lectura "Objetivo total" con ese cálculo en euros (no visible en público). El dashboard admin pasa de 3 a 4 tarjetas (grid 1/2/4 col). Sin cambios en `firestore.rules`. Build verde; pendiente de verificación en producción tras el merge.
 
 ## Riesgos residuales conocidos (no bloquean)
 

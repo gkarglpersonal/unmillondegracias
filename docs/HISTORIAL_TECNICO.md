@@ -1,6 +1,6 @@
 # unmillondegracias.com — Historial técnico y lecciones aprendidas
 
-*Última actualización: 23 de mayo de 2026 (arreglo de conversión HEIC para móviles Samsung: heic2any sustituido por heic-to; antes 22 de mayo: timeout de subida de foto en el formulario)*
+*Última actualización: 6 de junio de 2026 (objetivo de campaña dinámico: porcentaje público + tarjeta admin en euros sobre la suma de `targetAmount` de partidas activas, PR #40 abierto; antes 23 de mayo: arreglo de conversión HEIC para móviles Samsung)*
 
 ---
 
@@ -346,6 +346,43 @@ Al subir una foto HEIC desde el móvil, el formulario la rechazaba con un mensaj
 **Lección técnica registrada:**
 
 - **Las dependencias congeladas y muy antiguas acumulan deuda silenciosa.** `heic2any@0.0.4` llevaba años sin mantenerse y su libheif viejo no seguía el ritmo de los HEIC que generan los móviles nuevos. Como funcionaba con el HEIC del iPhone de pruebas, el problema no se vio hasta que un Samsung real lo destapó. Y un mensaje de error que culpa al usuario ("formato no compatible, sube otro") por algo que en realidad es un fallo interno de la librería es doblemente dañino: oculta la causa real y manda al usuario a una solución imposible. Antes de cambiar una dependencia, verificar en el entorno real (navegador, y el propio móvil que falla) en vez de fiarse solo de Node evita cambios a ciegas: aquí Node demostró que el decodificador moderno entiende el archivo, pero solo la prueba en el Galaxy real confirmó que la conversión completa funciona en el navegador.
+
+### Objetivo de campaña dinámico: porcentaje público + tarjeta admin en euros (6 junio 2026, PR #40)
+
+Dos cambios relacionados con el objetivo económico de la campaña. Hasta ahora el porcentaje global se calculaba contra un target fijo hardcodeado (`config.totalTripCost ?? 10500`); pasa a derivarse en tiempo real de la suma de los `targetAmount` de las partidas activas en Firestore. **PR abierto, pendiente de merge y deploy en el momento de escribir esto** (sin verificación en producción todavía).
+
+**Fuente única compartida:**
+
+- `src/utils/campaignTarget.js` (nuevo) — función pura `sumCampaignTarget(items)` que suma los `targetAmount` (ausente / no numérico / negativo cuenta como 0).
+- `src/hooks/useCampaignTarget.js` (nuevo) — hook que envuelve `useTripItems()` (`onSnapshot`, `onlyActive: true`) y devuelve `{ target, loading, error }`. Al colgar del listener reactivo de `tripItems`, cualquier alta, edición o archivado de partida recalcula el objetivo sin tocar código.
+
+**Cambio 1 — página pública (porcentaje global dinámico):**
+
+- `HeroProgressBar.jsx`: el `%` del hero se calcula con `useCampaignTarget()` en vez del target fijo.
+- `ThermometersGrid.jsx`: el indicador global "X% del viaje financiado" de la cabecera de experiencias se calcula con `sumCampaignTarget(items)` reusando los `items` que el componente ya carga (sin abrir un listener nuevo).
+- Ambos indicadores siguen mostrando **solo el porcentaje**, nunca el importe en euros (ni el nuevo ni el antiguo). No se tocan los termómetros individuales por partida (`TripItemCard` / `ThermometerBar`), ni el contador de personas, ni el feed.
+
+**Cambio 2 — panel admin (objetivo total en euros):**
+
+- `AdminDashboardCards.jsx`: nueva 4ª tarjeta de **solo lectura** "Objetivo total" con la suma en euros de los `targetAmount` de las partidas activas (vía `useTripItems()` + `sumCampaignTarget`, el mismo cálculo que el Cambio 1). Sin campo editable.
+- `AdminDashboardCards.module.css`: grid reajustado a 1 / 2 / 4 columnas (breakpoints 720 px y 1040 px) para acomodar la cuarta tarjeta de forma coherente con las existentes.
+- Este importe en euros **solo** aparece en el panel admin, nunca en la página pública.
+
+**Decisiones de diseño:**
+
+- **Una sola fuente de verdad para el objetivo** — `sumCampaignTarget` es una función pura reusada en los tres consumidores (hero, grid público, dashboard admin). El hook `useCampaignTarget` la expone reactiva para los componentes que no cargan partidas; `ThermometersGrid`, que ya tiene los `items`, la llama directamente para no duplicar el listener.
+- **`config.totalTripCost` (10.500 €) se deja intacto** en `config.js` y `seedTripItems.js` (dato semilla que ya no se lee). Borrarlo habría sido tocar más de lo pedido; dejarlo no muestra euros en público ni afecta al cálculo.
+- **El público nunca ve euros del objetivo; el admin sí** — la misma cifra (suma de `targetAmount`) se renderiza como porcentaje en la cara pública y como importe en el panel admin, separando "cuánto falta en %" (motivacional, público) de "cuál es el objetivo en €" (operativo, admin).
+
+**Archivos tocados:** `src/utils/campaignTarget.js` (nuevo), `src/hooks/useCampaignTarget.js` (nuevo), `src/components/hero/HeroProgressBar.jsx`, `src/components/thermometers/ThermometersGrid.jsx`, `src/components/admin/AdminDashboardCards.jsx`, `src/components/admin/AdminDashboardCards.module.css`.
+
+**Sin cambios en `firestore.rules`** ni en el flujo de escritura: ambos cambios leen datos ya existentes (`tripItems.targetAmount`).
+
+**Verificación:** `npm run build` verde; `npx eslint` sobre los archivos tocados sin errores (baseline heredado del proyecto sin cambios). Pendiente: verificación visual/funcional en producción tras el merge y deploy.
+
+**Lección técnica registrada:**
+
+- **Derivar un agregado de su fuente reactiva en vez de cachearlo en un campo aparte.** El target podría haberse guardado en `config/general` y mantenerse sincronizado a mano cada vez que cambia una partida, pero eso reintroduce el problema original (un número que hay que acordarse de actualizar). Sumar `targetAmount` directamente del listener de `tripItems` hace que el objetivo sea siempre coherente con las partidas reales por construcción, sin sincronización ni riesgo de drift. El coste (recorrer ≤30 docs en cliente) es despreciable al volumen del proyecto.
 
 ---
 

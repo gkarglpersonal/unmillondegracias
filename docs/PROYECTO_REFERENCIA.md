@@ -1,6 +1,6 @@
 # unmillondegracias.com — Documento de referencia maestro
 
-*Última actualización: 23 de mayo de 2026 (arreglo de conversión HEIC para móviles Samsung: heic2any sustituido por heic-to; antes 22 de mayo: timeout de subida de foto)*
+*Última actualización: 6 de junio de 2026 (objetivo de campaña dinámico: el porcentaje global público se calcula sobre la suma de `targetAmount` de las partidas activas, y el panel admin muestra ese objetivo en euros — PR #40 abierto; antes 23 de mayo: arreglo de conversión HEIC para móviles Samsung)*
 
 ---
 
@@ -90,7 +90,7 @@ El regalo es un **viaje a Argentina para dos personas**, organizado a través de
 
 Acceso con email/contraseña (Firebase Auth). Solo Gerry.
 
-- **Dashboard de totales (cabecera):** tres tarjetas en tiempo real sobre `contributions` — Total recaudado, Asignado a partidas, Sin asignar (fondo general). Suma solo `paymentStatus === 'paid'`. Visible en todas las pestañas.
+- **Dashboard de totales (cabecera):** cuatro tarjetas en tiempo real — Total recaudado, Asignado a partidas, Sin asignar (fondo general) sobre `contributions` pagadas (`paymentStatus === 'paid'`), y **Objetivo total** (solo lectura) con la suma en euros de los `targetAmount` de las partidas activas. Visible en todas las pestañas. Ese importe en euros del objetivo solo se ve en el admin; en la página pública el mismo cálculo se muestra únicamente como porcentaje.
 - **Aportaciones:** ver todas, marcar como pagadas, añadir manuales, editar importes, **cambiar la partida** (reasignación atómica con reajuste de termómetros). Filtros: Todas · Pendientes · Pagadas · **Sin asignar** (las que están en fondo general / sin preferencia, candidatas a reasignación). Indicador "Importe privado" (pill con icono Lock) cuando `amountPrivate === true` y hay importe — distingue a simple vista quién prefiere que MªÁngeles no vea el importe exacto. Indicador "Elegida por el donante" (pill con icono UserCheck) cuando la partida actual la eligió el contribuyente y no se ha reasignado nunca; al reasignarla se guarda la elección original como `originalTripItemId` y aparece un hint "Reasignada · original: X" para trazabilidad.
 - **Mensajes:** mostrar/ocultar (se publican automáticamente, no requieren aprobación)
 - **Fotos:** aprobar o rechazar (requieren aprobación manual antes de aparecer en la galería)
@@ -203,6 +203,8 @@ Verificar con: `gsutil cors get gs://mariangeles-viaje-32169.firebasestorage.app
 - ✅ **Fix del botón "Enviando…" clavado por subida de foto sin timeout (22 mayo 2026, PR #35, merge `1f58da8`)**. Detalle en [`HISTORIAL_TECNICO.md`](HISTORIAL_TECNICO.md). Una foto pesada subida con conexión lenta dejaba el botón del formulario clavado en "Enviando…" para siempre, sin error, porque `uploadBytes` no tenía timeout y la promise colgada impedía que el `finally` reseteara el botón. Solución: `Promise.race` con timeout de 60 s en `uploadPhoto` (mismo patrón que `awaitServerAck`) que rechaza con `upload-timeout` y permite reintentar, más endurecimiento de `compressImage` para no subir el original a ciegas si supera 3 MB. Sin tocar EmailJS, Firestore ni el orden de operaciones.
 
 - ✅ **Fix de conversión HEIC para móviles Samsung (23 mayo 2026, merge `3c85a73`)**. Detalle en [`HISTORIAL_TECNICO.md`](HISTORIAL_TECNICO.md). Las fotos HEIC de un Galaxy S24 Ultra (y de iPhone) se rechazaban con un falso "formato no compatible, sube JPG/PNG/WEBP" porque `heic2any@0.0.4` llevaba un libheif antiguo que no las decodificaba. Tras verificar en laboratorio (Node y navegador, en el propio Galaxy) que un libheif moderno sí convierte la foto, se sustituyó `heic2any` por `heic-to` (`^1.4.3`, libheif-js 1.19.x) en `convertHeic.js` y se reescribió el mensaje de error de `PhotoUploader` para que sea honesto y accionable. Sin tocar tamaño, timeout, compresión, Firestore ni emails.
+
+- 🔄 **Objetivo de campaña dinámico (6 junio 2026, PR #40 abierto, pendiente de merge y deploy)**. Detalle en [`HISTORIAL_TECNICO.md`](HISTORIAL_TECNICO.md). El porcentaje global de la página pública (hero y cabecera de "Las experiencias del viaje") deja de calcularse sobre un target fijo hardcodeado (`config.totalTripCost ?? 10500`) y pasa a derivarse en tiempo real de la suma de los `targetAmount` de las partidas activas en Firestore — nuevos `sumCampaignTarget(items)` y hook `useCampaignTarget()` sobre el listener reactivo de `tripItems`, así que altas/ediciones/archivados de partida se reflejan sin tocar código. Ambos indicadores públicos siguen mostrando solo el porcentaje, nunca euros. En el panel admin se añade una 4ª tarjeta de solo lectura "Objetivo total" con ese mismo cálculo en euros (cifra que no aparece en ningún sitio de la página pública). Sin cambios en `firestore.rules` ni en el flujo de escritura. Build verde; pendiente de verificación en producción tras el merge.
 
 **Riesgos residuales conocidos** (no bloquean el lanzamiento, documentados en [`docs/HISTORIAL_TECNICO.md`](HISTORIAL_TECNICO.md)):
 - Paginación admin pierde reactividad en docs >50 (hace falta refrescar para ver cambios en docs viejos).
