@@ -4,6 +4,7 @@ import { useTripItems } from '../../hooks/useTripItems.js';
 import { useConfig } from '../../hooks/useConfig.js';
 import { useSections } from '../../hooks/useSections.js';
 import { percent } from '../../utils/formatCurrency.js';
+import { sumCampaignTarget } from '../../utils/campaignTarget.js';
 import { CITY_OPTIONS } from '../../content/tripCities.js';
 import { MOBILE_COLLAGE } from '../../content/cityImages.js';
 import TripItemCard from './TripItemCard.jsx';
@@ -46,7 +47,10 @@ export default function ThermometersGrid() {
   const { sections } = useSections();
 
   const totalRaised = config?.totalRaised ?? 0;
-  const totalCost = config?.totalTripCost ?? 10500;
+  // Objetivo total dinámico: suma de los targetAmount de las partidas activas
+  // (reusa los `items` que ya carga este componente, sin abrir un listener
+  // nuevo). Sustituye al antiguo target fijo `config.totalTripCost`.
+  const totalCost = useMemo(() => sumCampaignTarget(items), [items]);
   const tripPct = percent(totalRaised, totalCost);
 
   const groups = useMemo(() => buildSectionGroups(items, sections), [items, sections]);

@@ -1,18 +1,23 @@
 import { useConfig } from '../../hooks/useConfig.js';
+import { useCampaignTarget } from '../../hooks/useCampaignTarget.js';
 import { percent } from '../../utils/formatCurrency.js';
 import styles from './HeroProgressBar.module.css';
 
 /**
- * Barra global del hero. Muestra el porcentaje del coste total del viaje
+ * Barra global del hero. Muestra el porcentaje del objetivo total del viaje
  * que se ha cubierto con aportaciones marcadas como pagadas.
+ *
+ * El objetivo total ya no es un target fijo: se calcula en tiempo real
+ * sumando los `targetAmount` de todas las partidas activas (ver
+ * `useCampaignTarget`). Solo se muestra el porcentaje, nunca el importe.
  */
 export default function HeroProgressBar() {
-  const { config, loading } = useConfig();
-  if (loading) return null;
+  const { config, loading: configLoading } = useConfig();
+  const { target, loading: targetLoading } = useCampaignTarget();
+  if (configLoading || targetLoading) return null;
 
   const totalRaised = config?.totalRaised ?? 0;
-  const totalCost = config?.totalTripCost ?? 10500;
-  const pct = percent(totalRaised, totalCost);
+  const pct = percent(totalRaised, target);
 
   return (
     <div className={styles.wrap}>
