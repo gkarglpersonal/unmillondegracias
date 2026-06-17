@@ -115,8 +115,9 @@ export async function generateMessagesPdf(messages, { totalContributors = null, 
       drawHeaderRule();
     }
 
-    // Nombre
-    page.drawText(msg.name, {
+    // Nombre (saneado igual que el cuerpo: el nombre se dibuja directo, sin
+    // pasar por wrapText, y un emoji aqui tambien romperia la generacion)
+    page.drawText(sanitize(msg.name || ''), {
       x: MARGIN_X,
       y: cursorY,
       size: 14,
@@ -199,12 +200,33 @@ function wrapText(text, font, size, maxWidth) {
  * Reemplazamos caracteres comunes problemáticos por equivalentes seguros.
  */
 function sanitize(text) {
-  return String(text)
+  const normalized = String(text)
     .replace(/[\u2018\u2019\u201A\u201B]/g, "'")
     .replace(/[\u201C\u201D\u201E\u201F]/g, '"')
     .replace(/[\u2013\u2014]/g, '-')
     .replace(/\u2026/g, '...')
     .replace(/\u00A0/g, ' ');
+
+  // Elimina lo que las StandardFonts (WinAnsi / Latin-1 / CP1252) no pueden
+  // codificar: emoji, simbolos y demas fuera de Latin-1. Conserva saltos de
+  // linea, ASCII imprimible, todo el suplemento Latin-1 (acentos, la enie,
+  // y los signos de apertura) y el euro. Sin este filtro, pdf-lib lanza
+  // "WinAnsi cannot encode ..." y aborta la generacion del PDF entero.
+  // for...of itera por code point, asi que los emoji de par sustituto
+  // (p. ej. una carita) se descartan completos.
+  let out = '';
+  for (const ch of normalized) {
+    const cp = ch.codePointAt(0);
+    if (
+      cp === 0x09 || cp === 0x0a || cp === 0x0d ||
+      (cp >= 0x20 && cp <= 0x7e) ||
+      (cp >= 0xa0 && cp <= 0xff) ||
+      cp === 0x20ac
+    ) {
+      out += ch;
+    }
+  }
+  return out;
 }
 
 /** Dispara la descarga de un Uint8Array como PDF. */
